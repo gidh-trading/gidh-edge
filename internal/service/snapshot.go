@@ -11,10 +11,10 @@ import (
 
 type SnapshotService struct {
 	repo   repo.MarketDataRepo
-	engine client.EngineClient
+	engine *client.HTTPEngineClient
 }
 
-func NewSnapshotService(r repo.MarketDataRepo, e client.EngineClient) *SnapshotService {
+func NewSnapshotService(r repo.MarketDataRepo, e *client.HTTPEngineClient) *SnapshotService {
 	return &SnapshotService{repo: r, engine: e}
 }
 

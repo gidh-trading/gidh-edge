@@ -11,15 +11,11 @@ import (
 
 type EdgeService struct {
 	repo   *repo.PostgresRepo
-	engine client.EngineClient
+	engine *client.HTTPEngineClient
 }
 
-func NewEdgeService(r *repo.PostgresRepo, e client.EngineClient) *EdgeService {
+func NewEdgeService(r *repo.PostgresRepo, e *client.HTTPEngineClient) *EdgeService {
 	return &EdgeService{repo: r, engine: e}
-}
-
-func (s *EdgeService) GetCalendar(ctx context.Context) ([]string, error) {
-	return s.repo.GetCalendar(ctx)
 }
 
 func (s *EdgeService) GetInstruments(ctx context.Context, date time.Time) ([]models.Instrument, error) {
@@ -34,8 +30,13 @@ func (s *EdgeService) GetHistorySignals(ctx context.Context, token uint32, date 
 	return s.repo.GetAnomalies(ctx, token, date)
 }
 
-func (s *EdgeService) GetBaselines(ctx context.Context, token uint32, date time.Time) (models.Baseline, error) {
-	return s.repo.GetBaselines(ctx, token, date)
+func (s *EdgeService) GetBaseline(ctx context.Context, token uint32, date time.Time) (*models.Baseline, error) {
+	baseline, err := s.repo.GetBaseline(ctx, token, date)
+	if err != nil {
+		logger.Errorf("Baseline not found for token %d on %v", token, date)
+		return nil, err
+	}
+	return baseline, nil
 }
 
 func (s *EdgeService) GetEngineStatus(ctx context.Context) string {
@@ -44,13 +45,4 @@ func (s *EdgeService) GetEngineStatus(ctx context.Context) string {
 		return "post-mortem"
 	}
 	return "active"
-}
-
-func (s *EdgeService) GetBaseline(ctx context.Context, token uint32, date time.Time) (*models.Baseline, error) {
-	baseline, err := s.repo.GetBaseline(ctx, token, date)
-	if err != nil {
-		logger.Errorf("Baseline not found for token %d on %v", token, date)
-		return nil, err
-	}
-	return baseline, nil
 }

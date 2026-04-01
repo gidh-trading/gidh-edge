@@ -1,4 +1,3 @@
-// internal/config/config.go
 package config
 
 import (
@@ -12,8 +11,10 @@ type Config struct {
 	App AppConfig
 }
 
-type GRPCConfig struct{ Port, Host string }
-type APIConfig struct{ Port string }
+type APIConfig struct {
+	Port      string
+	EngineURL string
+}
 type DBConfig struct{ ConnString string }
 type AppConfig struct{ LogLevel string }
 
@@ -21,12 +22,11 @@ func Load() *Config {
 	_ = env.Load(".env") // Load .env if it exists
 
 	return &Config{
-
 		API: APIConfig{
-			Port: getEnv("API_PORT", "8080"),
+			Port:      getEnv("API_PORT", "8080"),
+			EngineURL: getEnv("ENGINE_URL", "http://localhost:8081"), // Added Engine URL
 		},
 		DB: DBConfig{
-			// Default to a standard local Postgres DSN
 			ConnString: getEnv("DATABASE_URL", "postgres://postgres:password@localhost:5432/gidh?sslmode=disable"),
 		},
 		App: AppConfig{

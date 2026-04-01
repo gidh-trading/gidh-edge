@@ -14,21 +14,25 @@ import (
 
 func main() {
 	cfg := config.Load()
-	db := postgres.MustConnect(cfg.DatabaseURL)
+
+	db, err := postgres.New(cfg.DB.ConnString)
+	if err != nil {
+		panic(err)
+	}
 	defer db.Close()
 
 	// 1. Initialize Layers
-	repo := repo.NewPostgresRepo(db)
-	engineClient := client.NewHTTPEngineClient(cfg.EngineURL)
+	repoInstance := repo.NewPostgresRepo(db)
+	engineClient := client.NewHTTPEngineClient(cfg.API.EngineURL)
 
-	edgeSvc := service.NewEdgeService(repo)
-	snapSvc := service.NewSnapshotService(repo, engineClient)
+	edgeSvc := service.NewEdgeService(repoInstance, engineClient)
+	snapSvc := service.NewSnapshotService(repoInstance, engineClient)
 
 	edgeH := handler.NewEdgeHandler(edgeSvc)
 	snapH := handler.NewSnapshotHandler(snapSvc)
 
 	// 2. Start Server
 	r := router.NewRouter(edgeH, snapH)
-	logger.Infof("GIDH Edge Command Center listening on :%s", cfg.Port)
-	http.ListenAndServe(":"+cfg.Port, r)
+	logger.Infof("GIDH Edge Command Center listening on :%s", cfg.API.Port)
+	http.ListenAndServe(":"+cfg.API.Port, r)
 }
