@@ -10,7 +10,7 @@ import (
 )
 
 // New creates and configures the main service router
-func NewRouter(h *handler.EdgeHandler, s *handler.SnapshotHandler) http.Handler {
+func NewRouter(h *handler.EdgeHandler) http.Handler {
 	r := chi.NewRouter()
 
 	// --- Standard Middleware ---
@@ -41,7 +41,7 @@ func NewRouter(h *handler.EdgeHandler, s *handler.SnapshotHandler) http.Handler 
 		r.Get("/baselines", h.GetBaselines)
 
 		// 4. Live Snapshot (The Stitcher)
-		r.Get("/snapshot/{token}/{date}", s.GetSnapshot)
+		r.Get("/snapshot/{token}/{date}", h.GetSnapshot)
 
 		// 6. System Health
 		r.Get("/health", h.GetHealth)

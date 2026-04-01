@@ -21,6 +21,8 @@ func NewSnapshotService(r repo.MarketDataRepo, e client.EngineClient) *SnapshotS
 	}
 }
 
+// internal/service/snapshot.go
+
 func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, date time.Time) (models.Snapshot, error) {
 	// 1. Get Memory from DB (Historical finalized bars)
 	history, err := s.repo.GetHistory(ctx, token, date)
@@ -29,22 +31,27 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 		return models.Snapshot{}, err
 	}
 
-	// 2. Get Pulse from Engine (Attempt to get live un-finalized bars)
+	// 2. Get Pulse from Engine (Live un-finalized state)
 	liveState, err := s.engine.GetActiveState(ctx, token)
 	if err != nil {
-		// Post-Mortem Availability: Do not fail if Engine is down
-		logger.Warnf("Ingestion Engine unreachable for token %d: %v. Returning history only.", token, err)
+		// Post-Mortem Mode: fallback to history if engine is unreachable
+		logger.Debugf("Engine unreachable for token %d: %v. Returning history only.", token, err)
 		return models.Snapshot{
 			History: history,
 			Active:  []models.Bar{},
-			Profile: []float64{},
 		}, nil
 	}
 
-	// 3. Return Stitched Result (Merging Memory and Pulse)
+	// 3. Flatten the ActiveBars map into a slice for the UI
+	activeSlice := make([]models.Bar, 0, len(liveState.ActiveBars))
+	for _, bar := range liveState.ActiveBars {
+		activeSlice = append(activeSlice, bar)
+	}
+
+	// 4. Return Stitched Result
 	return models.Snapshot{
 		History: history,
-		Active:  liveState.Bars,
-		Profile: liveState.Profile,
+		Active:  activeSlice,
+		Profile: liveState.VolumeProfile,
 	}, nil
 }

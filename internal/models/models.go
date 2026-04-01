@@ -23,10 +23,18 @@ type Anomaly struct {
 	Message   string    `json:"message"`
 }
 
+type VolumeProfile struct {
+	Buckets     map[string]int64 `json:"buckets"` // Price -> Volume
+	POC         float64          `json:"poc"`
+	VAH         float64          `json:"vah"`
+	VAL         float64          `json:"val"`
+	TotalVolume int64            `json:"total_volume"`
+}
+
 type Snapshot struct {
-	History []Bar     `json:"history"`
-	Active  []Bar     `json:"active"`
-	Profile []float64 `json:"profile"` // Volume Profile
+	History []Bar         `json:"history"`
+	Active  []Bar         `json:"active"`  // Flattened from map to slice for UI
+	Profile VolumeProfile `json:"profile"` // Detailed auction state
 }
 
 type Baseline struct {

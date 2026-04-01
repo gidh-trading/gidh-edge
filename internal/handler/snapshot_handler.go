@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"gidh-edge/internal/models"
 	"gidh-edge/internal/service"
 	"gidh-edge/pkg/logger"
 	"net/http"
@@ -23,31 +24,40 @@ func (h *SnapshotHandler) GetSnapshot(w http.ResponseWriter, r *http.Request) {
 	tokenStr := chi.URLParam(r, "token")
 	dateStr := chi.URLParam(r, "date")
 
-	// 1. Validate Token
+	// 1. Validation
 	token, err := strconv.ParseUint(tokenStr, 10, 32)
 	if err != nil {
-		logger.Warnf("Invalid token format: %s", tokenStr)
-		http.Error(w, "Invalid token", http.StatusBadRequest)
+		h.respondWithError(w, http.StatusBadRequest, "Invalid instrument token")
 		return
 	}
 
-	// 2. Validate Date (YYYY-MM-DD) as per Specification
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		logger.Warnf("Invalid date format: %s. Expected YYYY-MM-DD", dateStr)
-		http.Error(w, "Invalid date format. Use YYYY-MM-DD", http.StatusBadRequest)
+		h.respondWithError(w, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD")
 		return
 	}
 
-	// 3. Call Service Layer
+	// 2. Fetch Stitched Data (DB Memory + Engine Pulse)
 	snapshot, err := h.service.GetFullDaySnapshot(r.Context(), uint32(token), date)
 	if err != nil {
-		logger.Errorf("Service error fetching snapshot: %v", err)
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		logger.Errorf("Failed to build snapshot for %d: %v", token, err)
+		h.respondWithError(w, http.StatusInternalServerError, "Failed to rehydrate session data")
 		return
 	}
 
-	// 4. Encode Response
+	// 3. Success Response
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(snapshot)
+	json.NewEncoder(w).Encode(models.JSONResponse{
+		Status: "success",
+		Data:   snapshot,
+	})
+}
+
+func (h *SnapshotHandler) respondWithError(w http.ResponseWriter, code int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(models.JSONResponse{
+		Status:  "error",
+		Message: message,
+	})
 }

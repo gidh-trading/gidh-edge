@@ -1,3 +1,4 @@
+// internal/client/engine.go
 package client
 
 import (
@@ -5,10 +6,11 @@ import (
 	"gidh-edge/internal/models"
 )
 
-// EngineState represents the current state from the Ingestion Engine
+// EngineState reflects the JSON structure returned by the Ingestion Engine's /api/active-state
 type EngineState struct {
-	Bars    []models.Bar `json:"bars"`
-	Profile []float64    `json:"profile"`
+	Symbol        string                `json:"symbol"`
+	ActiveBars    map[string]models.Bar `json:"active_bars"`    // Map of interval -> forming candle
+	VolumeProfile models.VolumeProfile  `json:"volume_profile"` // Full auction state
 }
 
 type EngineClient interface {
