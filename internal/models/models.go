@@ -3,9 +3,8 @@ package models
 import "time"
 
 type Instrument struct {
-	Token    uint32 `json:"token"`
-	Symbol   string `json:"symbol"`
-	Exchange string `json:"exchange"`
+	Token  uint32 `json:"token"`
+	Symbol string `json:"symbol"`
 }
 
 type Bar struct {

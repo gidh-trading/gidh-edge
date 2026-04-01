@@ -17,7 +17,7 @@ func NewPostgresRepo(db *sql.DB) *PostgresRepo {
 }
 
 func (r *PostgresRepo) GetAvailable(ctx context.Context, date time.Time) ([]models.Instrument, error) {
-	query := `SELECT DISTINCT c.instrument_token, c.symbol, c.exchange 
+	query := `SELECT DISTINCT c.instrument_token, c.symbol 
               FROM instrument_configs c 
               INNER JOIN gidh_bars b ON c.instrument_token = b.instrument_token 
               WHERE b.timestamp::date = $1`
@@ -30,7 +30,7 @@ func (r *PostgresRepo) GetAvailable(ctx context.Context, date time.Time) ([]mode
 	var list []models.Instrument
 	for rows.Next() {
 		var i models.Instrument
-		rows.Scan(&i.Token, &i.Symbol, &i.Exchange)
+		rows.Scan(&i.Token, &i.Symbol)
 		list = append(list, i)
 	}
 	return list, nil
