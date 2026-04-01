@@ -3,8 +3,9 @@ package models
 import "time"
 
 type Instrument struct {
-	Token  uint32 `json:"token"`
-	Symbol string `json:"symbol"`
+	Token    uint32 `json:"token"`
+	Symbol   string `json:"symbol"`
+	Exchange string `json:"exchange"`
 }
 
 type Bar struct {
@@ -19,12 +20,12 @@ type Bar struct {
 type Anomaly struct {
 	Timestamp time.Time `json:"timestamp"`
 	Type      string    `json:"type"`
-	Severity  string    `json:"severity"`
+	Severity  float64   `json:"severity"` // gidh_score
 	Message   string    `json:"message"`
 }
 
 type VolumeProfile struct {
-	Buckets     map[string]int64 `json:"buckets"` // Price -> Volume
+	Buckets     map[string]int64 `json:"buckets"`
 	POC         float64          `json:"poc"`
 	VAH         float64          `json:"vah"`
 	VAL         float64          `json:"val"`
@@ -32,26 +33,30 @@ type VolumeProfile struct {
 }
 
 type Snapshot struct {
-	History []Bar         `json:"history"`
-	Active  []Bar         `json:"active"`  // Flattened from map to slice for UI
-	Profile VolumeProfile `json:"profile"` // Detailed auction state
+	HistoryBars      []Bar         `json:"history_bars"`
+	HistoryAnomalies []Anomaly     `json:"history_anomalies"`
+	ActiveBars       []Bar         `json:"active_bars"`
+	VolumeProfile    VolumeProfile `json:"volume_profile"`
+}
+
+type TimeBucketDNA struct {
+	TimeKey     string  `json:"time_key"`
+	MedianVol   float64 `json:"median_vol"`
+	Surge99th   float64 `json:"surge_99th"`
+	MedianRange float64 `json:"median_range"`
 }
 
 type Baseline struct {
-	Token uint32    `json:"token"`
-	VAH   float64   `json:"vah"` // Value Area High
-	VAL   float64   `json:"val"` // Value Area Low
-	POC   float64   `json:"poc"` // Point of Control
-	Date  time.Time `json:"date"`
+	Token       uint32          `json:"token"`
+	Symbol      string          `json:"symbol"`
+	Date        time.Time       `json:"date"`
+	POC         float64         `json:"poc_5d"`
+	VAH         float64         `json:"vah_5d"`
+	VAL         float64         `json:"val_5d"`
+	MacroHVNs   []float64       `json:"macro_hvns"`
+	TimeBuckets []TimeBucketDNA `json:"time_buckets"`
 }
 
-type HealthStatus struct {
-	Database string `json:"database"`
-	Engine   string `json:"engine"`
-	Status   string `json:"status"` // "healthy" or "degraded"
-}
-
-// Standard Response Wrapper
 type JSONResponse struct {
 	Status  string      `json:"status"`
 	Data    interface{} `json:"data,omitempty"`

@@ -15,43 +15,30 @@ type SnapshotService struct {
 }
 
 func NewSnapshotService(r repo.MarketDataRepo, e client.EngineClient) *SnapshotService {
-	return &SnapshotService{
-		repo:   r,
-		engine: e,
-	}
+	return &SnapshotService{repo: r, engine: e}
 }
 
-// internal/service/snapshot.go
-
 func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, date time.Time) (models.Snapshot, error) {
-	// 1. Get Memory from DB (Historical finalized bars)
-	history, err := s.repo.GetHistory(ctx, token, date)
+	// 1. Rehydrate History from DB (Memory)
+	history, _ := s.repo.GetHistory(ctx, token, date)
+	anomalies, _ := s.repo.GetAnomalies(ctx, token, date)
+
+	// 2. Fetch Live Pulse from Engine RAM
+	live, err := s.engine.GetActiveState(ctx, token)
 	if err != nil {
-		logger.Errorf("Failed to fetch history from DB: %v", err)
-		return models.Snapshot{}, err
+		logger.Warnf("Engine unreachable, using Post-Mortem history only: %v", err)
+		return models.Snapshot{HistoryBars: history, HistoryAnomalies: anomalies}, nil
 	}
 
-	// 2. Get Pulse from Engine (Live un-finalized state)
-	liveState, err := s.engine.GetActiveState(ctx, token)
-	if err != nil {
-		// Post-Mortem Mode: fallback to history if engine is unreachable
-		logger.Debugf("Engine unreachable for token %d: %v. Returning history only.", token, err)
-		return models.Snapshot{
-			History: history,
-			Active:  []models.Bar{},
-		}, nil
+	activeBars := make([]models.Bar, 0, len(live.ActiveBars))
+	for _, b := range live.ActiveBars {
+		activeBars = append(activeBars, b)
 	}
 
-	// 3. Flatten the ActiveBars map into a slice for the UI
-	activeSlice := make([]models.Bar, 0, len(liveState.ActiveBars))
-	for _, bar := range liveState.ActiveBars {
-		activeSlice = append(activeSlice, bar)
-	}
-
-	// 4. Return Stitched Result
 	return models.Snapshot{
-		History: history,
-		Active:  activeSlice,
-		Profile: liveState.VolumeProfile,
+		HistoryBars:      history,
+		HistoryAnomalies: anomalies,
+		ActiveBars:       activeBars,
+		VolumeProfile:    live.VolumeProfile,
 	}, nil
 }

@@ -5,6 +5,7 @@ import (
 	"gidh-edge/internal/client"
 	"gidh-edge/internal/models"
 	"gidh-edge/internal/repo"
+	"gidh-edge/pkg/logger"
 	"time"
 )
 
@@ -43,4 +44,13 @@ func (s *EdgeService) GetEngineStatus(ctx context.Context) string {
 		return "post-mortem"
 	}
 	return "active"
+}
+
+func (s *EdgeService) GetBaseline(ctx context.Context, token uint32, date time.Time) (*models.Baseline, error) {
+	baseline, err := s.repo.GetBaseline(ctx, token, date)
+	if err != nil {
+		logger.Errorf("Baseline not found for token %d on %v", token, date)
+		return nil, err
+	}
+	return baseline, nil
 }
