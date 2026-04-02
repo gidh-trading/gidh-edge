@@ -14,6 +14,10 @@ type Bar struct {
 	Low       float64   `json:"low"`
 	Close     float64   `json:"close"`
 	Volume    int64     `json:"volume"`
+	VWAP      float64   `json:"vwap"`
+	POC       float64   `json:"poc"`
+	VAH       float64   `json:"vah"`
+	VAL       float64   `json:"val"`
 }
 
 type Anomaly struct {

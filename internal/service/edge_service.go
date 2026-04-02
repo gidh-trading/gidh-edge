@@ -31,9 +31,12 @@ func (s *EdgeService) GetHistorySignals(ctx context.Context, token uint32, date 
 }
 
 func (s *EdgeService) GetBaseline(ctx context.Context, token uint32, date time.Time) (*models.Baseline, error) {
-	baseline, err := s.repo.GetBaseline(ctx, token, date)
+	// Subtract 1 day because baseline DNA is calculated and stored for the previous day
+	lookupDate := date.AddDate(0, 0, -1)
+
+	baseline, err := s.repo.GetBaseline(ctx, token, lookupDate)
 	if err != nil {
-		logger.Errorf("Baseline not found for token %d on %v", token, date)
+		logger.Errorf("Baseline not found for token %d on %v (requested for %v)", token, lookupDate, date)
 		return nil, err
 	}
 	return baseline, nil

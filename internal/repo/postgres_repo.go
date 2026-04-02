@@ -37,8 +37,12 @@ func (r *PostgresRepo) GetAvailable(ctx context.Context, date time.Time) ([]mode
 }
 
 func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.Time) ([]models.Bar, error) {
-	query := `SELECT timestamp, open, high, low, close, volume FROM gidh_bars 
-              WHERE instrument_token = $1 AND timestamp::date = $2 ORDER BY timestamp ASC`
+	// Updated query to include vwap, poc, vah, and val
+	query := `SELECT timestamp, open, high, low, close, volume, vwap, poc, vah, val 
+              FROM gidh_bars 
+              WHERE instrument_token = $1 AND timestamp::date = $2 
+              ORDER BY timestamp ASC`
+
 	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"))
 	if err != nil {
 		return nil, err
@@ -48,7 +52,22 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	var bars []models.Bar
 	for rows.Next() {
 		var b models.Bar
-		rows.Scan(&b.Timestamp, &b.Open, &b.High, &b.Low, &b.Close, &b.Volume)
+		// Updated Scan to include the 4 new fields
+		err := rows.Scan(
+			&b.Timestamp,
+			&b.Open,
+			&b.High,
+			&b.Low,
+			&b.Close,
+			&b.Volume,
+			&b.VWAP,
+			&b.POC,
+			&b.VAH,
+			&b.VAL,
+		)
+		if err != nil {
+			return nil, err
+		}
 		bars = append(bars, b)
 	}
 	return bars, nil
