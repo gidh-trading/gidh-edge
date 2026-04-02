@@ -74,8 +74,25 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 }
 
 func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time.Time) ([]models.Anomaly, error) {
-	query := `SELECT timestamp, anomaly_type, gidh_score, message FROM gidh_anomalies 
-              WHERE instrument_token = $1 AND timestamp::date = $2 ORDER BY timestamp ASC`
+	query := `
+        SELECT 
+            period_start, 
+            last_updated_at, 
+            anomaly_type, 
+            upgrade_count,
+            effort_score, 
+            result_score, 
+            divergence_score,
+            price_value, 
+            price_baseline,
+            dist_poc_pct, 
+            dist_vah_pct, 
+            dist_val_pct
+        FROM gidh_anomalies 
+        WHERE instrument_token = $1 
+          AND period_start::date = $2 
+        ORDER BY period_start ASC`
+
 	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"))
 	if err != nil {
 		return nil, err
@@ -85,7 +102,23 @@ func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time
 	var list []models.Anomaly
 	for rows.Next() {
 		var a models.Anomaly
-		rows.Scan(&a.Timestamp, &a.Type, &a.Severity, &a.Message)
+		err := rows.Scan(
+			&a.PeriodStart,
+			&a.LastUpdatedAt,
+			&a.Type,
+			&a.UpgradeCount,
+			&a.EffortScore,
+			&a.ResultScore,
+			&a.DivergenceScore,
+			&a.PriceValue,
+			&a.PriceBaseline,
+			&a.DistPOCPct,
+			&a.DistVAHPct,
+			&a.DistVALPct,
+		)
+		if err != nil {
+			return nil, err
+		}
 		list = append(list, a)
 	}
 	return list, nil

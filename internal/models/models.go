@@ -21,10 +21,24 @@ type Bar struct {
 }
 
 type Anomaly struct {
-	Timestamp time.Time `json:"timestamp"`
-	Type      string    `json:"type"`
-	Severity  float64   `json:"severity"` // gidh_score
-	Message   string    `json:"message"`
+	PeriodStart   time.Time `json:"period_start"`
+	LastUpdatedAt time.Time `json:"last_updated_at"`
+	Type          string    `json:"type"`
+	UpgradeCount  int       `json:"upgrade_count"`
+
+	// Core Metrics for the HUD
+	EffortScore     float64 `json:"effort_score"` // Replaces severity/gidh_score
+	ResultScore     float64 `json:"result_score"`
+	DivergenceScore float64 `json:"divergence_score"`
+
+	// Price Context
+	PriceValue    float64 `json:"price_value"`
+	PriceBaseline float64 `json:"price_baseline"` // The Session POC
+
+	// Spatial Context
+	DistPOCPct float64 `json:"dist_poc_pct"`
+	DistVAHPct float64 `json:"dist_vah_pct"`
+	DistVALPct float64 `json:"dist_val_pct"`
 }
 
 type ProfileNode struct {
