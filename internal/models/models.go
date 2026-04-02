@@ -27,11 +27,20 @@ type Anomaly struct {
 	Message   string    `json:"message"`
 }
 
+type ProfileNode struct {
+	Type     string  `json:"type"`
+	Price    float64 `json:"price"`
+	Volume   int64   `json:"volume"`
+	Strength float64 `json:"strength"`
+}
+
 type VolumeProfile struct {
 	Buckets     map[string]int64 `json:"buckets"`
 	POC         float64          `json:"poc"`
 	VAH         float64          `json:"vah"`
 	VAL         float64          `json:"val"`
+	VWAP        float64          `json:"vwap"`
+	Nodes       []ProfileNode    `json:"nodes"`
 	TotalVolume int64            `json:"total_volume"`
 }
 

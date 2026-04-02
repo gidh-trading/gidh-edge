@@ -9,4 +9,5 @@ import (
 type MarketDataRepo interface {
 	GetHistory(ctx context.Context, token uint32, date time.Time) ([]models.Bar, error)
 	GetAnomalies(ctx context.Context, token uint32, date time.Time) ([]models.Anomaly, error)
+	GetVolumeProfile(ctx context.Context, token uint32, date time.Time) (*models.VolumeProfile, error)
 }

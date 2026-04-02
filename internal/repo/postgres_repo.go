@@ -106,3 +106,22 @@ func (r *PostgresRepo) GetBaseline(ctx context.Context, token uint32, date time.
 	json.Unmarshal(bucketsJSON, &b.TimeBuckets)
 	return &b, nil
 }
+
+func (r *PostgresRepo) GetVolumeProfile(ctx context.Context, token uint32, date time.Time) (*models.VolumeProfile, error) {
+	var jsonData []byte
+	// Querying the 'data' column which contains the full profile JSON
+	query := `SELECT data FROM volume_profile 
+              WHERE instrument_token = $1 AND trading_date = $2::date`
+
+	err := r.db.QueryRowContext(ctx, query, token, date.Format("2006-01-02")).Scan(&jsonData)
+	if err != nil {
+		return nil, err
+	}
+
+	var vp models.VolumeProfile
+	if err := json.Unmarshal(jsonData, &vp); err != nil {
+		return nil, err
+	}
+
+	return &vp, nil
+}
