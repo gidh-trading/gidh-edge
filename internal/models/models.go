@@ -42,20 +42,16 @@ type Anomaly struct {
 }
 
 type ProfileNode struct {
-	Type     string  `json:"type"`
-	Price    float64 `json:"price"`
-	Volume   int64   `json:"volume"`
-	Strength float64 `json:"strength"`
+	Price  float64 `json:"price"`
+	Volume int64   `json:"volume"`
 }
 
 type VolumeProfile struct {
-	Buckets     map[string]int64 `json:"buckets"`
-	POC         float64          `json:"poc"`
-	VAH         float64          `json:"vah"`
-	VAL         float64          `json:"val"`
-	VWAP        float64          `json:"vwap"`
-	Nodes       []ProfileNode    `json:"nodes"`
-	TotalVolume int64            `json:"total_volume"`
+	POC         float64       `json:"poc"`
+	VAH         float64       `json:"vah"`
+	VAL         float64       `json:"val"`
+	Nodes       []ProfileNode `json:"nodes"`
+	TotalVolume int64         `json:"total_volume"`
 }
 
 type Snapshot struct {
@@ -79,7 +75,7 @@ type Baseline struct {
 	POC         float64         `json:"poc_5d"`
 	VAH         float64         `json:"vah_5d"`
 	VAL         float64         `json:"val_5d"`
-	MacroHVNs   []float64       `json:"macro_hvns"`
+	MacroHVNs   []ProfileNode   `json:"macro_hvns"`
 	TimeBuckets []TimeBucketDNA `json:"time_buckets"`
 }
 
