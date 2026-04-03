@@ -7,8 +7,8 @@ import (
 )
 
 type MarketDataRepo interface {
-	GetHistory(ctx context.Context, token uint32, date time.Time) ([]models.Bar, error)
+	GetHistory(ctx context.Context, token uint32, date time.Time, interval string) ([]models.Bar, error)
 	GetAnomalies(ctx context.Context, token uint32, date time.Time) ([]models.Anomaly, error)
 	GetMarketDNA(ctx context.Context, token uint32, date time.Time) (*models.MarketDNA, error)
-	GetVolumeProfiles(ctx context.Context, token uint32, date time.Time, limit int) ([]models.VolumeProfile, error) // Added date
+	GetVolumeProfiles(ctx context.Context, token uint32, date time.Time, limit int) ([]models.VolumeProfile, error)
 }

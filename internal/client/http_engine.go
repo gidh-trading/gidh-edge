@@ -23,8 +23,8 @@ func NewHTTPEngineClient(url string) *HTTPEngineClient {
 	return &HTTPEngineClient{baseURL: url, client: &http.Client{Timeout: 2 * time.Second}}
 }
 
-func (c *HTTPEngineClient) GetActiveState(ctx context.Context, token uint32) (EngineState, error) {
-	url := fmt.Sprintf("%s/api/active-state?token=%d", c.baseURL, token)
+func (c *HTTPEngineClient) GetActiveState(ctx context.Context, token uint32, interval string) (EngineState, error) {
+	url := fmt.Sprintf("%s/api/active-state?token=%d&interval=%s", c.baseURL, token, interval)
 	resp, err := c.client.Get(url)
 	if err != nil {
 		return EngineState{}, err

@@ -22,8 +22,8 @@ func (s *EdgeService) GetInstruments(ctx context.Context, date time.Time) ([]mod
 	return s.repo.GetAvailable(ctx, date)
 }
 
-func (s *EdgeService) GetHistoryBars(ctx context.Context, token uint32, date time.Time) ([]models.Bar, error) {
-	return s.repo.GetHistory(ctx, token, date)
+func (s *EdgeService) GetHistoryBars(ctx context.Context, token uint32, date time.Time, interval string) ([]models.Bar, error) {
+	return s.repo.GetHistory(ctx, token, date, interval)
 }
 
 func (s *EdgeService) GetHistorySignals(ctx context.Context, token uint32, date time.Time) ([]models.Anomaly, error) {
@@ -40,7 +40,7 @@ func (s *EdgeService) GetMarketDNA(ctx context.Context, token uint32, date time.
 }
 
 func (s *EdgeService) GetEngineStatus(ctx context.Context) string {
-	_, err := s.engine.GetActiveState(ctx, 0) // Health-check ping
+	_, err := s.engine.GetActiveState(ctx, 0, "1m") // Health-check ping
 	if err != nil {
 		return "post-mortem"
 	}

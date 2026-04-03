@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"gidh-edge/internal/models"
+	"strings"
 	"time"
 )
 
@@ -36,14 +37,20 @@ func (r *PostgresRepo) GetAvailable(ctx context.Context, date time.Time) ([]mode
 	return list, nil
 }
 
-func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.Time) ([]models.Bar, error) {
-	// Updated query to include vwap, poc, vah, and val
+func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.Time, interval string) ([]models.Bar, error) {
+
+	// Map UI interval (1m, 5m) to DB format (1m0s, 5m0s)
+	dbInterval := interval
+	if interval != "" && !strings.HasSuffix(interval, "0s") {
+		dbInterval = interval + "0s"
+	}
+
 	query := `SELECT timestamp, open, high, low, close, volume, vwap, poc, vah, val 
               FROM gidh_bars 
-              WHERE instrument_token = $1 AND timestamp::date = $2 
+              WHERE instrument_token = $1 AND timestamp::date = $2 AND interval = $3
               ORDER BY timestamp ASC`
 
-	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"))
+	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"), dbInterval)
 	if err != nil {
 		return nil, err
 	}

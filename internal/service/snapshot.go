@@ -19,8 +19,8 @@ func NewSnapshotService(r repo.MarketDataRepo, e *client.HTTPEngineClient) *Snap
 	return &SnapshotService{repo: r, engine: e}
 }
 
-func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, date time.Time) (models.Snapshot, error) {
-	history, _ := s.repo.GetHistory(ctx, token, date)
+func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, date time.Time, interval string) (models.Snapshot, error) {
+	history, _ := s.repo.GetHistory(ctx, token, date, interval)
 	anomalies, _ := s.repo.GetAnomalies(ctx, token, date)
 
 	// Fetch DNA for the specific backtesting date
@@ -38,7 +38,7 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 	// ---------------------------------------------------------
 	// LIVE DATA INTEGRATION & SANITIZATION (T>0 Merge)
 	// ---------------------------------------------------------
-	live, err := s.engine.GetActiveState(ctx, token)
+	live, err := s.engine.GetActiveState(ctx, token, interval)
 	var activeBars []models.Bar
 
 	if err == nil {
