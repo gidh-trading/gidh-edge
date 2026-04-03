@@ -154,8 +154,8 @@ func (r *PostgresRepo) GetMarketDNA(ctx context.Context, token uint32, date time
 }
 
 func (r *PostgresRepo) GetVolumeProfiles(ctx context.Context, token uint32, date time.Time, limit int) ([]models.VolumeProfile, error) {
-	// Updated to filter by date to support historical context during backtesting
-	query := `SELECT stock_name, instrument_token, trading_date, poc, vah, val, nodes 
+	// 1. Update the query to include the hvns and lvns columns
+	query := `SELECT stock_name, instrument_token, trading_date, poc, vah, val, nodes, hvns, lvns 
               FROM gidh_volume_profiles 
               WHERE instrument_token = $1 AND trading_date <= $2::date
               ORDER BY trading_date DESC LIMIT $3`
@@ -169,8 +169,9 @@ func (r *PostgresRepo) GetVolumeProfiles(ctx context.Context, token uint32, date
 	var profiles []models.VolumeProfile
 	for rows.Next() {
 		var vp models.VolumeProfile
-		var nodesJSON []byte
+		var nodesJSON, hvnsJSON, lvnsJSON []byte // Added hvnsJSON and lvnsJSON
 
+		// 2. Update the Scan to include the new JSON columns
 		err := rows.Scan(
 			&vp.StockName,
 			&vp.InstrumentToken,
@@ -179,16 +180,17 @@ func (r *PostgresRepo) GetVolumeProfiles(ctx context.Context, token uint32, date
 			&vp.VAH,
 			&vp.VAL,
 			&nodesJSON,
+			&hvnsJSON, // New
+			&lvnsJSON, // New
 		)
 		if err != nil {
 			return nil, err
 		}
 
-		err = json.Unmarshal(nodesJSON, &vp.Nodes)
-
-		if err != nil {
-			return nil, err // Return the error so you know if unmarshaling fails
-		}
+		// 3. Unmarshal all three structural layers
+		json.Unmarshal(nodesJSON, &vp.Nodes)
+		json.Unmarshal(hvnsJSON, &vp.HVNs) // New
+		json.Unmarshal(lvnsJSON, &vp.LVNs) // New
 
 		profiles = append(profiles, vp)
 	}

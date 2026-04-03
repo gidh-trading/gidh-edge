@@ -59,17 +59,22 @@ func (v *VPNode) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type VPExtrema struct {
+	Price    float64 `json:"price"`
+	Volume   int64   `json:"volume"`
+	Strength float64 `json:"strength"` // 0-100 scale
+}
+
 type VolumeProfile struct {
-	StockName       string    `json:"stock_name"`
-	InstrumentToken uint32    `json:"instrument_token"`
-	TradingDate     time.Time `json:"trading_date"`
-	BucketSize      float64   `json:"bucket_size"`
-	SortedPrices    []float64 `json:"sorted_prices"`
-	POC             float64   `json:"poc"`
-	VAH             float64   `json:"vah"`
-	VAL             float64   `json:"val"`
-	TotalVolume     int64     `json:"total_volume"`
-	Nodes           []VPNode  `json:"nodes"`
+	StockName       string      `json:"stock_name"`
+	InstrumentToken uint32      `json:"instrument_token"`
+	TradingDate     time.Time   `json:"trading_date"`
+	POC             float64     `json:"poc"`
+	VAH             float64     `json:"vah"`
+	VAL             float64     `json:"val"`
+	Nodes           []VPNode    `json:"nodes"`
+	HVNs            []VPExtrema `json:"hvns"`
+	LVNs            []VPExtrema `json:"lvns"`
 }
 
 type MarketDNA struct {
