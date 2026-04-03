@@ -45,10 +45,20 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 		dbInterval = interval + "0s"
 	}
 
-	query := `SELECT timestamp, open, high, low, close, volume, vwap, poc, vah, val 
-              FROM gidh_bars 
-              WHERE instrument_token = $1 AND timestamp::date = $2 AND interval = $3
-              ORDER BY timestamp ASC`
+	query := `
+		WITH TradingDays AS (
+			SELECT DISTINCT timestamp::date AS t_date
+			FROM gidh_bars
+			WHERE instrument_token = $1 AND timestamp::date <= $2::date
+			ORDER BY t_date DESC
+			LIMIT 5
+		)
+		SELECT timestamp, open, high, low, close, volume, vwap, poc, vah, val 
+		FROM gidh_bars 
+		WHERE instrument_token = $1 
+		  AND timestamp::date IN (SELECT t_date FROM TradingDays)
+		  AND interval = $3
+		ORDER BY timestamp ASC`
 
 	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"), dbInterval)
 	if err != nil {
@@ -82,22 +92,20 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 
 func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time.Time) ([]models.Anomaly, error) {
 	query := `
-        SELECT 
-            period_start, 
-            last_updated_at, 
-            anomaly_type, 
-            upgrade_count,
-            effort_score, 
-            result_score, 
-            divergence_score,
-            price_value, 
-            price_baseline,
-            dist_poc_pct, 
-            dist_vah_pct, 
-            dist_val_pct
+		WITH TradingDays AS (
+			SELECT DISTINCT period_start::date AS t_date
+			FROM gidh_anomalies
+			WHERE instrument_token = $1 AND period_start::date <= $2::date
+			ORDER BY t_date DESC
+			LIMIT 5
+		)
+		SELECT 
+            period_start, last_updated_at, anomaly_type, upgrade_count,
+            effort_score, result_score, divergence_score, price_value, 
+            price_baseline, dist_poc_pct, dist_vah_pct, dist_val_pct
         FROM gidh_anomalies 
         WHERE instrument_token = $1 
-          AND period_start::date = $2 
+          AND period_start::date IN (SELECT t_date FROM TradingDays)
         ORDER BY period_start ASC`
 
 	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"))
