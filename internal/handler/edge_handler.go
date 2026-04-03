@@ -37,8 +37,8 @@ func (h *EdgeHandler) GetAvailableInstruments(w http.ResponseWriter, r *http.Req
 	h.sendResponse(w, http.StatusOK, "success", instruments, "")
 }
 
-// GetBaseline handles GET /api/baselines/{token}/{date}
-func (h *EdgeHandler) GetBaseline(w http.ResponseWriter, r *http.Request) {
+// GetMarketDNA handles GET /api/market-dna/{token}
+func (h *EdgeHandler) GetMarketDNA(w http.ResponseWriter, r *http.Request) {
 	tokenStr := chi.URLParam(r, "token")
 	dateStr := chi.URLParam(r, "date")
 
@@ -54,13 +54,13 @@ func (h *EdgeHandler) GetBaseline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	baseline, err := h.service.GetBaseline(r.Context(), uint32(token), queryDate)
+	dna, err := h.service.GetMarketDNA(r.Context(), uint32(token), queryDate)
 	if err != nil {
-		h.sendResponse(w, http.StatusInternalServerError, "error", nil, "Baseline not found")
+		h.sendResponse(w, http.StatusInternalServerError, "error", nil, "Market DNA not found")
 		return
 	}
 
-	h.sendResponse(w, http.StatusOK, "success", baseline, "")
+	h.sendResponse(w, http.StatusOK, "success", dna, "")
 }
 
 func (h *EdgeHandler) sendResponse(w http.ResponseWriter, code int, status string, data interface{}, msg string) {

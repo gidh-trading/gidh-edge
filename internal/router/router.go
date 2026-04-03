@@ -12,21 +12,23 @@ func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler) *chi.
 	r := chi.NewRouter()
 	r.Use(middleware.Logger, middleware.Recoverer)
 
-	// 2. CORS Middleware
 	r.Use(cors.Handler(cors.Options{
-		// AllowOriginFunc allows your Cloud UI to connect from any origin
 		AllowedOrigins:   []string{"https://*", "http://*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
+		MaxAge:           300,
 	}))
 
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/instruments", edgeH.GetAvailableInstruments)
-		r.Get("/baselines/{token}/{date}", edgeH.GetBaseline)
+
+		// Updated endpoint for the T=0 initialization
 		r.Get("/snapshot/{token}/{date}", snapH.GetSnapshot)
+
+		// Updated utility endpoint (Date removed, renamed to market-dna)
+		r.Get("/market-dna/{token}/{date}", edgeH.GetMarketDNA)
 	})
 	return r
 }

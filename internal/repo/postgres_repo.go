@@ -124,16 +124,16 @@ func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time
 	return list, nil
 }
 
-func (r *PostgresRepo) GetMarketDNA(ctx context.Context, token uint32) (*models.MarketDNA, error) {
+func (r *PostgresRepo) GetMarketDNA(ctx context.Context, token uint32, date time.Time) (*models.MarketDNA, error) {
 	var dna models.MarketDNA
 	var hvnsJSON, bucketsJSON []byte
 
+	// Filter by specific date to support backtesting
 	query := `SELECT instrument_token, stock_name, trading_date, poc_5d, vah_5d, val_5d, macro_hvns, time_buckets 
               FROM gidh_market_dna 
-              WHERE instrument_token = $1 
-              ORDER BY trading_date DESC LIMIT 1`
+              WHERE instrument_token = $1 AND trading_date = $2::date`
 
-	err := r.db.QueryRowContext(ctx, query, token).Scan(
+	err := r.db.QueryRowContext(ctx, query, token, date.Format("2006-01-02")).Scan(
 		&dna.InstrumentToken, &dna.Symbol, &dna.TradingDate, &dna.POC, &dna.VAH, &dna.VAL, &hvnsJSON, &bucketsJSON,
 	)
 	if err != nil {
@@ -146,13 +146,14 @@ func (r *PostgresRepo) GetMarketDNA(ctx context.Context, token uint32) (*models.
 	return &dna, nil
 }
 
-func (r *PostgresRepo) GetVolumeProfiles(ctx context.Context, token uint32, limit int) ([]models.VolumeProfile, error) {
+func (r *PostgresRepo) GetVolumeProfiles(ctx context.Context, token uint32, date time.Time, limit int) ([]models.VolumeProfile, error) {
+	// Updated to filter by date to support historical context during backtesting
 	query := `SELECT stock_name, instrument_token, trading_date, poc, vah, val, nodes 
               FROM gidh_volume_profiles 
-              WHERE instrument_token = $1 
-              ORDER BY trading_date DESC LIMIT $2`
+              WHERE instrument_token = $1 AND trading_date <= $2::date
+              ORDER BY trading_date DESC LIMIT $3`
 
-	rows, err := r.db.QueryContext(ctx, query, token, limit)
+	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"), limit)
 	if err != nil {
 		return nil, err
 	}

@@ -22,15 +22,16 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 	history, _ := s.repo.GetHistory(ctx, token, date)
 	anomalies, _ := s.repo.GetAnomalies(ctx, token, date)
 
-	// Fetch DNA and Historical Volume Profiles (limit to 5 days as standard)
-	dna, err := s.repo.GetMarketDNA(ctx, token)
+	// Fetch DNA for the specific backtesting date
+	dna, err := s.repo.GetMarketDNA(ctx, token, date)
 	if err != nil {
-		logger.Warnf("Failed to fetch Market DNA for token %d: %v", token, err)
+		logger.Warnf("Failed to fetch Market DNA for token %d on %v: %v", token, date, err)
 	}
 
-	profiles, err := s.repo.GetVolumeProfiles(ctx, token, 5)
+	// Fetch Volume Profiles ending at the specific backtesting date
+	profiles, err := s.repo.GetVolumeProfiles(ctx, token, date, 5)
 	if err != nil {
-		logger.Warnf("Failed to fetch Volume Profiles for token %d: %v", token, err)
+		logger.Warnf("Failed to fetch Volume Profiles for token %d on %v: %v", token, date, err)
 	}
 
 	snapshot := models.Snapshot{
@@ -40,7 +41,7 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 		VolumeProfiles:   profiles,
 	}
 
-	// Try Live Data
+	// Live data check (usually skipped in deep backtesting but kept for hybrid modes)
 	live, err := s.engine.GetActiveState(ctx, token)
 	if err == nil {
 		activeBars := make([]models.Bar, 0, len(live.ActiveBars))
@@ -48,8 +49,6 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 			activeBars = append(activeBars, b)
 		}
 		snapshot.ActiveBars = activeBars
-	} else {
-		logger.Warnf("Engine offline for token %d, returning historical layout only", token)
 	}
 
 	return snapshot, nil
