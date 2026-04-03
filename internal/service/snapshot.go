@@ -6,6 +6,7 @@ import (
 	"gidh-edge/internal/models"
 	"gidh-edge/internal/repo"
 	"gidh-edge/pkg/logger"
+	"sort"
 	"time"
 )
 
@@ -34,21 +35,47 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 		logger.Warnf("Failed to fetch Volume Profiles for token %d on %v: %v", token, date, err)
 	}
 
+	// ---------------------------------------------------------
+	// LIVE DATA INTEGRATION & SANITIZATION (T>0 Merge)
+	// ---------------------------------------------------------
+	live, err := s.engine.GetActiveState(ctx, token)
+	var activeBars []models.Bar
+
+	if err == nil {
+		// 1. Create a map of History by Timestamp for O(1) deduplication
+		historyMap := make(map[time.Time]int)
+		for i, b := range history {
+			historyMap[b.Timestamp] = i
+		}
+
+		// 2. Process active bars from the Engine
+		for _, b := range live.ActiveBars {
+			if idx, exists := historyMap[b.Timestamp]; exists {
+				// Collision: The DB and the Live Engine both have this bar.
+				// We overwrite the DB version with the Engine's version,
+				// as the Engine has the latest live ticks/volume.
+				history[idx] = b
+			} else {
+				// It's a completely new bar not yet saved to DB
+				activeBars = append(activeBars, b)
+			}
+		}
+
+		// 3. CRITICAL: Go map iteration is random. We MUST sort the activeBars
+		// chronologically before sending them to the UI to satisfy charting libraries.
+		sort.Slice(activeBars, func(i, j int) bool {
+			return activeBars[i].Timestamp.Before(activeBars[j].Timestamp)
+		})
+	} else {
+		logger.Warnf("Failed to fetch active state from engine for token %d: %v", token, err)
+	}
+
 	snapshot := models.Snapshot{
 		HistoryBars:      history,
 		HistoryAnomalies: anomalies,
 		MarketDNA:        dna,
 		VolumeProfiles:   profiles,
-	}
-
-	// Live data check (usually skipped in deep backtesting but kept for hybrid modes)
-	live, err := s.engine.GetActiveState(ctx, token)
-	if err == nil {
-		activeBars := make([]models.Bar, 0, len(live.ActiveBars))
-		for _, b := range live.ActiveBars {
-			activeBars = append(activeBars, b)
-		}
-		snapshot.ActiveBars = activeBars
+		ActiveBars:       activeBars, // Now strictly sorted and deduped
 	}
 
 	return snapshot, nil
