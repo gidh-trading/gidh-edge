@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"math"
+	"time"
+)
 
 type Instrument struct {
 	Token  uint32 `json:"token"`
@@ -38,6 +42,21 @@ type Anomaly struct {
 type VPNode struct {
 	Price  float64 `json:"price"`
 	Volume int64   `json:"volume"`
+}
+
+func (v *VPNode) UnmarshalJSON(data []byte) error {
+	type Alias VPNode
+	aux := &struct {
+		Volume float64 `json:"volume"`
+		*Alias
+	}{
+		Alias: (*Alias)(v),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	v.Volume = int64(math.Round(aux.Volume))
+	return nil
 }
 
 type VolumeProfile struct {

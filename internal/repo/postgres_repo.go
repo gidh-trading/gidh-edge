@@ -184,7 +184,12 @@ func (r *PostgresRepo) GetVolumeProfiles(ctx context.Context, token uint32, date
 			return nil, err
 		}
 
-		json.Unmarshal(nodesJSON, &vp.Nodes)
+		err = json.Unmarshal(nodesJSON, &vp.Nodes)
+
+		if err != nil {
+			return nil, err // Return the error so you know if unmarshaling fails
+		}
+
 		profiles = append(profiles, vp)
 	}
 
