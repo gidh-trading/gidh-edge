@@ -22,32 +22,34 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 	history, _ := s.repo.GetHistory(ctx, token, date)
 	anomalies, _ := s.repo.GetAnomalies(ctx, token, date)
 
-	// 1. Try Live Data first
+	// Fetch DNA and Historical Volume Profiles (limit to 5 days as standard)
+	dna, err := s.repo.GetMarketDNA(ctx, token)
+	if err != nil {
+		logger.Warnf("Failed to fetch Market DNA for token %d: %v", token, err)
+	}
+
+	profiles, err := s.repo.GetVolumeProfiles(ctx, token, 5)
+	if err != nil {
+		logger.Warnf("Failed to fetch Volume Profiles for token %d: %v", token, err)
+	}
+
+	snapshot := models.Snapshot{
+		HistoryBars:      history,
+		HistoryAnomalies: anomalies,
+		MarketDNA:        dna,
+		VolumeProfiles:   profiles,
+	}
+
+	// Try Live Data
 	live, err := s.engine.GetActiveState(ctx, token)
 	if err == nil {
 		activeBars := make([]models.Bar, 0, len(live.ActiveBars))
 		for _, b := range live.ActiveBars {
 			activeBars = append(activeBars, b)
 		}
-		return models.Snapshot{
-			HistoryBars:      history,
-			HistoryAnomalies: anomalies,
-			ActiveBars:       activeBars,
-			VolumeProfile:    live.VolumeProfile,
-		}, nil
-	}
-
-	// 2. Fallback: Get historical profile from DB
-	logger.Warnf("Engine offline, fetching profile from DB for token %d", token)
-
-	snapshot := models.Snapshot{
-		HistoryBars:      history,
-		HistoryAnomalies: anomalies,
-	}
-
-	dbProfile, err := s.repo.GetVolumeProfile(ctx, token, date)
-	if err == nil && dbProfile != nil {
-		snapshot.VolumeProfile = *dbProfile
+		snapshot.ActiveBars = activeBars
+	} else {
+		logger.Warnf("Engine offline for token %d, returning historical layout only", token)
 	}
 
 	return snapshot, nil

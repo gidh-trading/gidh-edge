@@ -124,37 +124,61 @@ func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time
 	return list, nil
 }
 
-func (r *PostgresRepo) GetBaseline(ctx context.Context, token uint32, date time.Time) (*models.Baseline, error) {
-	var b models.Baseline
+func (r *PostgresRepo) GetMarketDNA(ctx context.Context, token uint32) (*models.MarketDNA, error) {
+	var dna models.MarketDNA
 	var hvnsJSON, bucketsJSON []byte
-	query := `SELECT instrument_token, symbol, trading_date, poc_5d, vah_5d, val_5d, macro_hvns, time_buckets 
-              FROM market_dna WHERE instrument_token = $1 AND trading_date = $2::date`
-	err := r.db.QueryRowContext(ctx, query, token, date.Format("2006-01-02")).Scan(
-		&b.Token, &b.Symbol, &b.Date, &b.POC, &b.VAH, &b.VAL, &hvnsJSON, &bucketsJSON,
+
+	query := `SELECT instrument_token, stock_name, trading_date, poc_5d, vah_5d, val_5d, macro_hvns, time_buckets 
+              FROM gidh_market_dna 
+              WHERE instrument_token = $1 
+              ORDER BY trading_date DESC LIMIT 1`
+
+	err := r.db.QueryRowContext(ctx, query, token).Scan(
+		&dna.InstrumentToken, &dna.Symbol, &dna.TradingDate, &dna.POC, &dna.VAH, &dna.VAL, &hvnsJSON, &bucketsJSON,
 	)
 	if err != nil {
 		return nil, err
 	}
-	json.Unmarshal(hvnsJSON, &b.MacroHVNs)
-	json.Unmarshal(bucketsJSON, &b.TimeBuckets)
-	return &b, nil
+
+	json.Unmarshal(hvnsJSON, &dna.MacroHVNs)
+	json.Unmarshal(bucketsJSON, &dna.TimeBuckets)
+
+	return &dna, nil
 }
 
-func (r *PostgresRepo) GetVolumeProfile(ctx context.Context, token uint32, date time.Time) (*models.VolumeProfile, error) {
-	var jsonData []byte
-	// Querying the 'data' column which contains the full profile JSON
-	query := `SELECT data FROM volume_profile 
-              WHERE instrument_token = $1 AND trading_date = $2::date`
+func (r *PostgresRepo) GetVolumeProfiles(ctx context.Context, token uint32, limit int) ([]models.VolumeProfile, error) {
+	query := `SELECT stock_name, instrument_token, trading_date, poc, vah, val, nodes 
+              FROM gidh_volume_profiles 
+              WHERE instrument_token = $1 
+              ORDER BY trading_date DESC LIMIT $2`
 
-	err := r.db.QueryRowContext(ctx, query, token, date.Format("2006-01-02")).Scan(&jsonData)
+	rows, err := r.db.QueryContext(ctx, query, token, limit)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	var vp models.VolumeProfile
-	if err := json.Unmarshal(jsonData, &vp); err != nil {
-		return nil, err
+	var profiles []models.VolumeProfile
+	for rows.Next() {
+		var vp models.VolumeProfile
+		var nodesJSON []byte
+
+		err := rows.Scan(
+			&vp.StockName,
+			&vp.InstrumentToken,
+			&vp.TradingDate,
+			&vp.POC,
+			&vp.VAH,
+			&vp.VAL,
+			&nodesJSON,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		json.Unmarshal(nodesJSON, &vp.Nodes)
+		profiles = append(profiles, vp)
 	}
 
-	return &vp, nil
+	return profiles, nil
 }
