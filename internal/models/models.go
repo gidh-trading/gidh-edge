@@ -12,31 +12,56 @@ type Instrument struct {
 }
 
 type Bar struct {
-	Timestamp time.Time `json:"timestamp"`
-	Open      float64   `json:"open"`
-	High      float64   `json:"high"`
-	Low       float64   `json:"low"`
-	Close     float64   `json:"close"`
-	Volume    int64     `json:"volume"`
-	VWAP      float64   `json:"vwap"`
-	POC       float64   `json:"poc"`
-	VAH       float64   `json:"vah"`
-	VAL       float64   `json:"val"`
+	Timestamp    time.Time `json:"timestamp"`
+	Open         float64   `json:"open"`
+	High         float64   `json:"high"`
+	Low          float64   `json:"low"`
+	Close        float64   `json:"close"`
+	Volume       int64     `json:"volume"`
+	TotalBuyQty  int64     `json:"total_buy_qty"`
+	TotalSellQty int64     `json:"total_sell_qty"`
+
+	SupportLevels    []Wall `json:"support_levels"`
+	ResistanceLevels []Wall `json:"resistance_levels"`
+
+	VWAP float64 `json:"vwap"`
+	POC  float64 `json:"poc"`
+	VAH  float64 `json:"vah"`
+	VAL  float64 `json:"val"`
 }
 
-type Anomaly struct {
-	PeriodStart     time.Time `json:"period_start"`
-	LastUpdatedAt   time.Time `json:"last_updated_at"`
-	Type            string    `json:"type"`
-	UpgradeCount    int       `json:"upgrade_count"`
-	EffortScore     float64   `json:"effort_score"`
-	ResultScore     float64   `json:"result_score"`
-	DivergenceScore float64   `json:"divergence_score"`
-	PriceValue      float64   `json:"price_value"`
-	PriceBaseline   float64   `json:"price_baseline"`
-	DistPOCPct      float64   `json:"dist_poc_pct"`
-	DistVAHPct      float64   `json:"dist_vah_pct"`
-	DistVALPct      float64   `json:"dist_val_pct"`
+type Wall struct {
+	Price    float64 `json:"price"`
+	Quantity int64   `json:"quantity"`
+	Orders   int     `json:"orders"`
+	Side     string  `json:"side"` // "buy" or "sell"
+
+	// --- Existing State ---
+	IsConcrete bool `json:"is_concrete"`
+	IsBroken   bool `json:"is_broken"`
+
+	// --- NEW: Iceberg Tracking ---
+	AbsorbedVolume int64 `json:"absorbed_volume"` // Total hidden volume eaten
+	HitCount       int   `json:"hit_count"`       // Number of times aggressor hit and reloaded
+	IsIceberg      bool  `json:"is_iceberg"`      // Flag for UI rendering
+}
+
+type AnomalyType string
+
+type AnomalyEvent struct {
+	TimeKey         string      `json:"time_key"`
+	PeriodStart     time.Time   `json:"period_start"`
+	LastUpdatedAt   time.Time   `json:"last_updated_at"`
+	InstrumentToken uint32      `json:"instrument_token"`
+	Symbol          string      `json:"symbol"`
+	Type            AnomalyType `json:"type"`
+
+	// Core Physics Triad
+	EffortScore float64 `json:"effort_score"`
+	ResultScore float64 `json:"result_score"`
+	PulseScore  float64 `json:"pulse_score"`
+
+	PriceValue float64 `json:"price_value"`
 }
 
 type VPNode struct {
@@ -99,7 +124,7 @@ type TimeBucketDNA struct {
 
 type Snapshot struct {
 	HistoryBars      []Bar           `json:"history_bars"`
-	HistoryAnomalies []Anomaly       `json:"history_anomalies"`
+	HistoryAnomalies []AnomalyEvent  `json:"history_anomalies"`
 	ActiveBars       []Bar           `json:"active_bars"`
 	MarketDNA        *MarketDNA      `json:"market_dna"`
 	VolumeProfiles   []VolumeProfile `json:"volume_profiles"`

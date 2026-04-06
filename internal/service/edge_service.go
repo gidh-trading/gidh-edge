@@ -26,7 +26,7 @@ func (s *EdgeService) GetHistoryBars(ctx context.Context, token uint32, date tim
 	return s.repo.GetHistory(ctx, token, date, interval)
 }
 
-func (s *EdgeService) GetHistorySignals(ctx context.Context, token uint32, date time.Time) ([]models.Anomaly, error) {
+func (s *EdgeService) GetHistorySignals(ctx context.Context, token uint32, date time.Time) ([]models.AnomalyEvent, error) {
 	return s.repo.GetAnomalies(ctx, token, date)
 }
 

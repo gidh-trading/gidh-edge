@@ -46,19 +46,19 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	}
 
 	query := `
-		WITH TradingDays AS (
-			SELECT DISTINCT timestamp::date AS t_date
-			FROM gidh_bars
-			WHERE instrument_token = $1 AND timestamp::date <= $2::date
-			ORDER BY t_date DESC
-			LIMIT 5
-		)
-		SELECT timestamp, open, high, low, close, volume, vwap, poc, vah, val 
-		FROM gidh_bars 
-		WHERE instrument_token = $1 
-		  AND timestamp::date IN (SELECT t_date FROM TradingDays)
-		  AND interval = $3
-		ORDER BY timestamp ASC`
+       SELECT 
+          timestamp, open, high, low, close, volume, 
+          total_buy_qty, total_sell_qty, vwap, poc, vah, val,
+          support_levels, resistance_levels -- NEW: JSONB Columns
+       FROM gidh_bars 
+       WHERE instrument_token = $1 
+         AND interval = $3
+         AND timestamp::date = (
+             SELECT MAX(timestamp::date) 
+             FROM gidh_bars 
+             WHERE instrument_token = $1 AND timestamp::date <= $2::date
+         )
+       ORDER BY timestamp ASC`
 
 	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"), dbInterval)
 	if err != nil {
@@ -69,7 +69,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	var bars []models.Bar
 	for rows.Next() {
 		var b models.Bar
-		// Updated Scan to include the 4 new fields
+		// Updated Scan to include support_levels and resistance_levels
 		err := rows.Scan(
 			&b.Timestamp,
 			&b.Open,
@@ -77,10 +77,14 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.Low,
 			&b.Close,
 			&b.Volume,
+			&b.TotalBuyQty,
+			&b.TotalSellQty,
 			&b.VWAP,
 			&b.POC,
 			&b.VAH,
 			&b.VAL,
+			&b.SupportLevels,    // NEW: Scan into slice
+			&b.ResistanceLevels, // NEW: Scan into slice
 		)
 		if err != nil {
 			return nil, err
@@ -90,22 +94,20 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	return bars, nil
 }
 
-func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time.Time) ([]models.Anomaly, error) {
+func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time.Time) ([]models.AnomalyEvent, error) {
+	// 1. Simplified query removing membrane and directional fields
 	query := `
-		WITH TradingDays AS (
-			SELECT DISTINCT period_start::date AS t_date
-			FROM gidh_anomalies
-			WHERE instrument_token = $1 AND period_start::date <= $2::date
-			ORDER BY t_date DESC
-			LIMIT 5
-		)
-		SELECT 
-            period_start, last_updated_at, anomaly_type, upgrade_count,
-            effort_score, result_score, divergence_score, price_value, 
-            price_baseline, dist_poc_pct, dist_vah_pct, dist_val_pct
+       SELECT 
+            period_start, instrument_token, symbol, anomaly_type, 
+            time_key, last_updated_at, effort_score, result_score, 
+            pulse_score, price_value
         FROM gidh_anomalies 
         WHERE instrument_token = $1 
-          AND period_start::date IN (SELECT t_date FROM TradingDays)
+          AND period_start::date = (
+              SELECT MAX(period_start::date) 
+              FROM gidh_anomalies 
+              WHERE instrument_token = $1 AND period_start::date <= $2::date
+          )
         ORDER BY period_start ASC`
 
 	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"))
@@ -114,27 +116,26 @@ func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time
 	}
 	defer rows.Close()
 
-	var list []models.Anomaly
+	var list []models.AnomalyEvent
 	for rows.Next() {
-		var a models.Anomaly
+		var e models.AnomalyEvent
+		// 2. Updated Scan to match the 10 core physics columns
 		err := rows.Scan(
-			&a.PeriodStart,
-			&a.LastUpdatedAt,
-			&a.Type,
-			&a.UpgradeCount,
-			&a.EffortScore,
-			&a.ResultScore,
-			&a.DivergenceScore,
-			&a.PriceValue,
-			&a.PriceBaseline,
-			&a.DistPOCPct,
-			&a.DistVAHPct,
-			&a.DistVALPct,
+			&e.PeriodStart,
+			&e.InstrumentToken,
+			&e.Symbol,
+			&e.Type,
+			&e.TimeKey,
+			&e.LastUpdatedAt,
+			&e.EffortScore,
+			&e.ResultScore,
+			&e.PulseScore,
+			&e.PriceValue,
 		)
 		if err != nil {
 			return nil, err
 		}
-		list = append(list, a)
+		list = append(list, e)
 	}
 	return list, nil
 }
