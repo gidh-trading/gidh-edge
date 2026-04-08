@@ -10,6 +10,14 @@ import (
 	"time"
 )
 
+// 1. Duplicate the Physics Hierarchy from the backend
+var anomalySeverity = map[models.AnomalyType]int{
+	"ENERGY_PROPAGATION": 4,
+	"ENERGY_SINK":        3,
+	"ENERGY_LEAK":        2,
+	"VOLUME_SURGE":       1,
+}
+
 type SnapshotService struct {
 	repo   repo.MarketDataRepo
 	engine *client.HTTPEngineClient
@@ -20,8 +28,11 @@ func NewSnapshotService(r repo.MarketDataRepo, e *client.HTTPEngineClient) *Snap
 }
 
 func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, date time.Time, interval string) (models.Snapshot, error) {
+	// 1. Fetch historical data from the repository
 	history, _ := s.repo.GetHistory(ctx, token, date, interval)
-	anomalies, _ := s.repo.GetAnomalies(ctx, token, date)
+
+	// Fetch ALL raw anomalies from the database
+	rawAnomalies, _ := s.repo.GetAnomalies(ctx, token, date)
 
 	// Fetch DNA for the specific backtesting date
 	dna, err := s.repo.GetMarketDNA(ctx, token, date)
@@ -36,33 +47,47 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 	}
 
 	// ---------------------------------------------------------
-	// LIVE DATA INTEGRATION & SANITIZATION (T>0 Merge)
+	// 2. RAW ANOMALY ALIGNMENT: Include all events aligned to the interval
+	// ---------------------------------------------------------
+	parsedDuration, err := time.ParseDuration(interval)
+	if err != nil {
+		parsedDuration = 1 * time.Minute // Default fallback if interval string is invalid
+	}
+
+	var alignedAnomalies []models.AnomalyEvent
+	for _, a := range rawAnomalies {
+		// Snap the raw timestamp to the requested chart interval for UI consistency
+		a.PeriodStart = a.PeriodStart.Truncate(parsedDuration)
+		alignedAnomalies = append(alignedAnomalies, a)
+	}
+
+	// Sort chronologically after alignment
+	sort.Slice(alignedAnomalies, func(i, j int) bool {
+		return alignedAnomalies[i].PeriodStart.Before(alignedAnomalies[j].PeriodStart)
+	})
+
+	// ---------------------------------------------------------
+	// 3. LIVE DATA INTEGRATION & SANITIZATION (T>0 Merge)
 	// ---------------------------------------------------------
 	live, err := s.engine.GetActiveState(ctx, token, interval)
 	var activeBars []models.Bar
 
 	if err == nil {
-		// 1. Create a map of History by Timestamp for O(1) deduplication
 		historyMap := make(map[time.Time]int)
 		for i, b := range history {
 			historyMap[b.Timestamp] = i
 		}
 
-		// 2. Process active bars from the Engine
 		for _, b := range live.ActiveBars {
 			if idx, exists := historyMap[b.Timestamp]; exists {
-				// Collision: The DB and the Live Engine both have this bar.
-				// We overwrite the DB version with the Engine's version,
-				// as the Engine has the latest live ticks/volume.
+				// Overwrite historical placeholder with live finalized bar
 				history[idx] = b
 			} else {
-				// It's a completely new bar not yet saved to DB
+				// Collect bars that haven't been persisted to history yet
 				activeBars = append(activeBars, b)
 			}
 		}
 
-		// 3. CRITICAL: Go map iteration is random. We MUST sort the activeBars
-		// chronologically before sending them to the UI to satisfy charting libraries.
 		sort.Slice(activeBars, func(i, j int) bool {
 			return activeBars[i].Timestamp.Before(activeBars[j].Timestamp)
 		})
@@ -70,12 +95,13 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 		logger.Warnf("Failed to fetch active state from engine for token %d: %v", token, err)
 	}
 
+	// 4. Construct and return the full snapshot
 	snapshot := models.Snapshot{
 		HistoryBars:      history,
-		HistoryAnomalies: anomalies,
+		HistoryAnomalies: alignedAnomalies, // Serves every event detected during the day
 		MarketDNA:        dna,
 		VolumeProfiles:   profiles,
-		ActiveBars:       activeBars, // Now strictly sorted and deduped
+		ActiveBars:       activeBars,
 	}
 
 	return snapshot, nil

@@ -103,7 +103,7 @@ func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time
        SELECT 
             period_start, instrument_token, symbol, anomaly_type,direction, 
             time_key, last_updated_at, effort_score, result_score, 
-            pulse_score, price_value
+            pulse_score,intensity, price_value
         FROM gidh_anomalies 
         WHERE instrument_token = $1 
           AND period_start::date = (
@@ -134,6 +134,7 @@ func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time
 			&e.EffortScore,
 			&e.ResultScore,
 			&e.PulseScore,
+			&e.Intensity,
 			&e.PriceValue,
 		)
 		if err != nil {

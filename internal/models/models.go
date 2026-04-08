@@ -62,6 +62,7 @@ type AnomalyEvent struct {
 	ResultScore float64 `json:"result_score"`
 	PulseScore  float64 `json:"pulse_score"`
 
+	Intensity  float64 `json:"intensity"`
 	PriceValue float64 `json:"price_value"`
 }
 
