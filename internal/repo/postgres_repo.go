@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"gidh-edge/internal/models"
+	"gidh-edge/pkg/logger"
 	"strings"
 	"time"
 )
@@ -21,7 +22,8 @@ func (r *PostgresRepo) GetAvailable(ctx context.Context, date time.Time) ([]mode
 	query := `SELECT DISTINCT c.instrument_token, c.symbol 
               FROM instrument_configs c 
               INNER JOIN gidh_bars b ON c.instrument_token = b.instrument_token 
-              WHERE b.timestamp::date = $1`
+              WHERE b.timestamp::date = $1
+              ORDER BY c.symbol`
 	rows, err := r.db.QueryContext(ctx, query, date.Format("2006-01-02"))
 	if err != nil {
 		return nil, err
@@ -47,9 +49,8 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 
 	query := `
        SELECT 
-          timestamp, open, high, low, close, volume, 
-          total_buy_qty, total_sell_qty, vwap, poc, vah, val,
-          support_levels, resistance_levels -- NEW: JSONB Columns
+          timestamp, open, high, low, close, volume,cvd,cvd_divergence,
+          total_buy_qty, total_sell_qty, vwap, poc, vah, val
        FROM gidh_bars 
        WHERE instrument_token = $1 
          AND interval = $3
@@ -77,18 +78,20 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.Low,
 			&b.Close,
 			&b.Volume,
+			&b.CVD,
+			&b.CVDDivergence,
 			&b.TotalBuyQty,
 			&b.TotalSellQty,
 			&b.VWAP,
 			&b.POC,
 			&b.VAH,
 			&b.VAL,
-			&b.SupportLevels,    // NEW: Scan into slice
-			&b.ResistanceLevels, // NEW: Scan into slice
 		)
 		if err != nil {
+			logger.Errorf("failed to scan bar: %v", err)
 			return nil, err
 		}
+
 		bars = append(bars, b)
 	}
 	return bars, nil
@@ -98,7 +101,7 @@ func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time
 	// 1. Simplified query removing membrane and directional fields
 	query := `
        SELECT 
-            period_start, instrument_token, symbol, anomaly_type, 
+            period_start, instrument_token, symbol, anomaly_type,direction, 
             time_key, last_updated_at, effort_score, result_score, 
             pulse_score, price_value
         FROM gidh_anomalies 
@@ -125,6 +128,7 @@ func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time
 			&e.InstrumentToken,
 			&e.Symbol,
 			&e.Type,
+			&e.Direction,
 			&e.TimeKey,
 			&e.LastUpdatedAt,
 			&e.EffortScore,
@@ -142,21 +146,22 @@ func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time
 
 func (r *PostgresRepo) GetMarketDNA(ctx context.Context, token uint32, date time.Time) (*models.MarketDNA, error) {
 	var dna models.MarketDNA
-	var hvnsJSON, bucketsJSON []byte
+	var hvnsJSON, lvnsJSON, bucketsJSON []byte
 
 	// Filter by specific date to support backtesting
-	query := `SELECT instrument_token, stock_name, trading_date, poc_5d, vah_5d, val_5d, macro_hvns, time_buckets 
+	query := `SELECT instrument_token, stock_name, trading_date, poc_5d, vah_5d, val_5d, macro_hvns, macro_lvns, time_buckets 
               FROM gidh_market_dna 
               WHERE instrument_token = $1 AND trading_date = $2::date`
 
 	err := r.db.QueryRowContext(ctx, query, token, date.Format("2006-01-02")).Scan(
-		&dna.InstrumentToken, &dna.Symbol, &dna.TradingDate, &dna.POC, &dna.VAH, &dna.VAL, &hvnsJSON, &bucketsJSON,
+		&dna.InstrumentToken, &dna.Symbol, &dna.TradingDate, &dna.POC, &dna.VAH, &dna.VAL, &hvnsJSON, &lvnsJSON, &bucketsJSON,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	json.Unmarshal(hvnsJSON, &dna.MacroHVNs)
+	json.Unmarshal(lvnsJSON, &dna.MacroLVNs)
 	json.Unmarshal(bucketsJSON, &dna.TimeBuckets)
 
 	return &dna, nil

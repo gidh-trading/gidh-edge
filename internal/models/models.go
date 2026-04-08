@@ -12,17 +12,17 @@ type Instrument struct {
 }
 
 type Bar struct {
-	Timestamp    time.Time `json:"timestamp"`
-	Open         float64   `json:"open"`
-	High         float64   `json:"high"`
-	Low          float64   `json:"low"`
-	Close        float64   `json:"close"`
-	Volume       int64     `json:"volume"`
-	TotalBuyQty  int64     `json:"total_buy_qty"`
-	TotalSellQty int64     `json:"total_sell_qty"`
+	Timestamp     time.Time `json:"timestamp"`
+	Open          float64   `json:"open"`
+	High          float64   `json:"high"`
+	Low           float64   `json:"low"`
+	Close         float64   `json:"close"`
+	Volume        int64     `json:"volume"`
+	CVD           float64   `json:"cvd"`
+	CVDDivergence float64   `json:"cvd_divergence"` // -1 to 1 Heatmap value
 
-	SupportLevels    []Wall `json:"support_levels"`
-	ResistanceLevels []Wall `json:"resistance_levels"`
+	TotalBuyQty  int64 `json:"total_buy_qty"`
+	TotalSellQty int64 `json:"total_sell_qty"`
 
 	VWAP float64 `json:"vwap"`
 	POC  float64 `json:"poc"`
@@ -55,6 +55,7 @@ type AnomalyEvent struct {
 	InstrumentToken uint32      `json:"instrument_token"`
 	Symbol          string      `json:"symbol"`
 	Type            AnomalyType `json:"type"`
+	Direction       int         `json:"direction"`
 
 	// Core Physics Triad
 	EffortScore float64 `json:"effort_score"`
@@ -109,7 +110,8 @@ type MarketDNA struct {
 	POC             float64         `json:"poc_5d"`
 	VAH             float64         `json:"vah_5d"`
 	VAL             float64         `json:"val_5d"`
-	MacroHVNs       []VPNode        `json:"macro_hvns"`
+	MacroHVNs       []VPExtrema     `json:"macro_hvns"`
+	MacroLVNs       []VPExtrema     `json:"macro_lvns"`
 	TimeBuckets     []TimeBucketDNA `json:"time_buckets"`
 }
 
