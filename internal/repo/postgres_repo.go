@@ -227,10 +227,9 @@ func (r *PostgresRepo) GetActiveOrder(ctx context.Context, token uint32, isBackt
 }
 
 func (r *PostgresRepo) SaveOrder(ctx context.Context, o *models.Order, uid string) error {
-	query := `INSERT INTO orders (instrument_token, symbol, order_id, side, order_type, quantity, status, is_backtest, firebase_uid) 
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-	_, err := r.db.ExecContext(ctx, query,
-		o.InstrumentToken, o.Symbol, o.OrderID, o.Side, o.OrderType, o.Quantity, o.Status, o.IsBacktest, uid)
+	query := `INSERT INTO orders (instrument_token, symbol, order_id, side, quantity, status, is_backtest, firebase_uid) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+	_, err := r.db.ExecContext(ctx, query, o.InstrumentToken, o.Symbol, o.OrderID, o.Side, o.Quantity, o.Status, o.IsBacktest, uid)
 	return err
 }
 
