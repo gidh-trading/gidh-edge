@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"gidh-edge/internal/models"
 	"gidh-edge/internal/service"
+	"gidh-edge/pkg/logger"
 	"net/http"
 )
 
@@ -62,5 +63,6 @@ func (h *OrderHandler) sendResponse(w http.ResponseWriter, code int, status stri
 }
 
 func (h *OrderHandler) sendError(w http.ResponseWriter, code int, msg string) {
+	logger.Errorf("Error: %+v", msg)
 	h.sendResponse(w, code, "error", nil, msg)
 }

@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gidh-edge/internal/models"
+	"io"
 	"net/http"
 	"time"
+
+	"gidh-edge/internal/models"
 )
 
 type EngineState struct {
@@ -21,20 +23,7 @@ type HTTPEngineClient struct {
 }
 
 func NewHTTPEngineClient(url string) *HTTPEngineClient {
-	return &HTTPEngineClient{baseURL: url, client: &http.Client{Timeout: 2 * time.Second}}
-}
-
-func (c *HTTPEngineClient) GetActiveState(ctx context.Context, token uint32, interval string) (EngineState, error) {
-	url := fmt.Sprintf("%s/api/engine/active-state?token=%d&interval=%s", c.baseURL, token, interval)
-	resp, err := c.client.Get(url)
-	if err != nil {
-		return EngineState{}, err
-	}
-	defer resp.Body.Close()
-
-	var state EngineState
-	json.NewDecoder(resp.Body).Decode(&state)
-	return state, nil
+	return &HTTPEngineClient{baseURL: url, client: &http.Client{Timeout: 5 * time.Second}}
 }
 
 func (c *HTTPEngineClient) SubmitOrder(ctx context.Context, req models.OrderRequest, uid string) (*models.Order, error) {
@@ -43,20 +32,24 @@ func (c *HTTPEngineClient) SubmitOrder(ctx context.Context, req models.OrderRequ
 	body, _ := json.Marshal(req)
 	httpReq, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(body))
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("X-Firebase-UID", uid) // Forward the UID
+	httpReq.Header.Set("X-Firebase-UID", uid)
 
 	resp, err := c.client.Do(httpReq)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("engine unreachable: %w", err)
 	}
 	defer resp.Body.Close()
 
+	// Handle backend rejections (like 409 Conflict)
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("engine returned error: %d", resp.StatusCode)
+		errorBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s", string(errorBody)) // Pass backend error string back
 	}
 
 	var order models.Order
-	json.NewDecoder(resp.Body).Decode(&order)
+	if err := json.NewDecoder(resp.Body).Decode(&order); err != nil {
+		return nil, fmt.Errorf("failed to decode engine response: %w", err)
+	}
 	return &order, nil
 }
 
@@ -68,11 +61,37 @@ func (c *HTTPEngineClient) GetActiveOrders(ctx context.Context, isBacktest bool,
 
 	resp, err := c.client.Do(httpReq)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("engine unreachable: %w", err)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		errorBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s", string(errorBody))
+	}
+
 	var orders []models.Order
-	json.NewDecoder(resp.Body).Decode(&orders)
+	if err := json.NewDecoder(resp.Body).Decode(&orders); err != nil {
+		return nil, fmt.Errorf("failed to decode engine response: %w", err)
+	}
 	return orders, nil
+}
+
+func (c *HTTPEngineClient) GetActiveState(ctx context.Context, token uint32, interval string) (EngineState, error) {
+	url := fmt.Sprintf("%s/api/engine/active-state?token=%d&interval=%s", c.baseURL, token, interval)
+
+	httpReq, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return EngineState{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return EngineState{}, fmt.Errorf("engine returned status: %d", resp.StatusCode)
+	}
+
+	var state EngineState
+	json.NewDecoder(resp.Body).Decode(&state)
+	return state, nil
 }
