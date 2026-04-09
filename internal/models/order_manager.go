@@ -20,6 +20,7 @@ type Order struct {
 	OrderID         string    `json:"order_id"`
 	InstrumentToken uint32    `json:"instrument_token"`
 	Symbol          string    `json:"symbol"`
+	OrderType       string    `json:"order_type"` // Added
 	Status          string    `json:"status"`
 	Side            string    `json:"side"`
 	Quantity        int       `json:"quantity"`

@@ -28,27 +28,29 @@ func NewOrderManager(r *repo.PostgresRepo, live, paper OrderExecutor) *OrderMana
 	}
 }
 
-func (m *OrderManager) HandleOrder(ctx context.Context, req models.OrderRequest) (*models.Order, error) {
-	// 1. Logic Check: DB will enforce the Unique Index constraint,
-	// but we can check here for better error messaging.
-	existing, _ := m.repo.GetActiveOrder(ctx, req.Token, req.IsBacktest, req.FirebaseUID)
+func (m *OrderManager) SubmitOrder(ctx context.Context, req models.OrderRequest, uid string) (*models.Order, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// 1. Check for existing active orders
+	existing, _ := m.repo.GetActiveOrder(ctx, req.Token, req.IsBacktest, uid)
 	if existing != nil {
 		return nil, fmt.Errorf("active order already exists for %s", req.Symbol)
 	}
 
-	// 2. Route to correct executor
+	// 2. Select Executor
 	var executor OrderExecutor = m.liveExecutor
 	if req.IsBacktest {
 		executor = m.paperExecutor
 	}
 
-	// 3. Execute with Zerodha or Paper Engine
+	// 3. Execute
 	orderID, err := executor.PlaceOrder(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	// 4. Record in DB
+	// 4. Save to DB
 	order := &models.Order{
 		OrderID:         orderID,
 		InstrumentToken: req.Token,
@@ -59,10 +61,13 @@ func (m *OrderManager) HandleOrder(ctx context.Context, req models.OrderRequest)
 		IsBacktest:      req.IsBacktest,
 	}
 
-	if err := m.repo.SaveOrder(ctx, order, req.FirebaseUID); err != nil {
-		// If DB save fails after API call, this is a critical sync error
+	if err := m.repo.SaveOrder(ctx, order, uid); err != nil {
 		return nil, fmt.Errorf("order placed but failed to log: %v", err)
 	}
 
 	return order, nil
+}
+
+func (m *OrderManager) GetActiveOrders(ctx context.Context, isBacktest bool, uid string) ([]models.Order, error) {
+	return m.repo.GetActiveOrders(ctx, isBacktest, uid)
 }
