@@ -31,43 +31,24 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 	// 1. Fetch historical data from the repository
 	history, _ := s.repo.GetHistory(ctx, token, date, interval)
 
-	// Fetch ALL raw anomalies from the database
-	rawAnomalies, _ := s.repo.GetAnomalies(ctx, token, date)
+	// 2. Fetch PERFECTLY ALIGNED anomalies directly from the database
+	// NOTE: Ensure your repo.GetAnomalies signature is updated to accept 'interval'
+	intervalAnomalies, _ := s.repo.GetAnomalies(ctx, token, date, interval)
 
-	// Fetch DNA for the specific backtesting date
+	// 3. Fetch DNA for the specific backtesting date
 	dna, err := s.repo.GetMarketDNA(ctx, token, date)
 	if err != nil {
 		logger.Warnf("Failed to fetch Market DNA for token %d on %v: %v", token, date, err)
 	}
 
-	// Fetch Volume Profiles ending at the specific backtesting date
+	// 4. Fetch Volume Profiles ending at the specific backtesting date
 	profiles, err := s.repo.GetVolumeProfiles(ctx, token, date, 5)
 	if err != nil {
 		logger.Warnf("Failed to fetch Volume Profiles for token %d on %v: %v", token, date, err)
 	}
 
 	// ---------------------------------------------------------
-	// 2. RAW ANOMALY ALIGNMENT: Include all events aligned to the interval
-	// ---------------------------------------------------------
-	parsedDuration, err := time.ParseDuration(interval)
-	if err != nil {
-		parsedDuration = 1 * time.Minute // Default fallback if interval string is invalid
-	}
-
-	var alignedAnomalies []models.AnomalyEvent
-	for _, a := range rawAnomalies {
-		// Snap the raw timestamp to the requested chart interval for UI consistency
-		a.PeriodStart = a.PeriodStart.Truncate(parsedDuration)
-		alignedAnomalies = append(alignedAnomalies, a)
-	}
-
-	// Sort chronologically after alignment
-	sort.Slice(alignedAnomalies, func(i, j int) bool {
-		return alignedAnomalies[i].PeriodStart.Before(alignedAnomalies[j].PeriodStart)
-	})
-
-	// ---------------------------------------------------------
-	// 3. LIVE DATA INTEGRATION & SANITIZATION (T>0 Merge)
+	// 5. LIVE DATA INTEGRATION & SANITIZATION (T>0 Merge)
 	// ---------------------------------------------------------
 	live, err := s.engine.GetActiveState(ctx, token, interval)
 	var activeBars []models.Bar
@@ -95,10 +76,10 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 		logger.Warnf("Failed to fetch active state from engine for token %d: %v", token, err)
 	}
 
-	// 4. Construct and return the full snapshot
+	// 6. Construct and return the full snapshot
 	snapshot := models.Snapshot{
 		HistoryBars:      history,
-		HistoryAnomalies: alignedAnomalies, // Serves every event detected during the day
+		HistoryAnomalies: intervalAnomalies, // Now natively filtered by 1m, 5m, 15m etc.
 		MarketDNA:        dna,
 		VolumeProfiles:   profiles,
 		ActiveBars:       activeBars,

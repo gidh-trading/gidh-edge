@@ -49,8 +49,10 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 
 	query := `
        SELECT 
-          timestamp, open, high, low, close, volume,cvd,cvd_divergence,
-          total_buy_qty, total_sell_qty, vwap, poc, vah, val
+          timestamp, open, high, low, close, volume,
+          cvd,cvd_divergence, effort_score,result_score,
+          pulse_score,peak_trade_sign, total_buy_qty, total_sell_qty, 
+          vwap, poc, vah, val
        FROM gidh_bars 
        WHERE instrument_token = $1 
          AND interval = $3
@@ -80,6 +82,10 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.Volume,
 			&b.CVD,
 			&b.CVDDivergence,
+			&b.EffortScore,
+			&b.ResultScore,
+			&b.PulseScore,
+			&b.PeakTradeSign,
 			&b.TotalBuyQty,
 			&b.TotalSellQty,
 			&b.VWAP,
@@ -97,52 +103,40 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	return bars, nil
 }
 
-func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time.Time) ([]models.AnomalyEvent, error) {
-	// 1. Simplified query removing membrane and directional fields
+func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time.Time, interval string) ([]models.AnomalyEvent, error) {
 	query := `
-       SELECT 
-            period_start, instrument_token, symbol, anomaly_type,direction, 
-            time_key, last_updated_at, effort_score, result_score, 
-            pulse_score,intensity, price_value
+        SELECT 
+            period_start, instrument_token, interval, symbol, anomaly_type, 
+            time_key, last_updated_at, direction, effort_score, 
+            result_score, pulse_score, intensity, price_value
         FROM gidh_anomalies 
         WHERE instrument_token = $1 
-          AND period_start::date = (
-              SELECT MAX(period_start::date) 
-              FROM gidh_anomalies 
-              WHERE instrument_token = $1 AND period_start::date <= $2::date
-          )
+          AND period_start::date = $2::date
+          AND interval = $3
         ORDER BY period_start ASC`
 
-	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"))
+	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"), interval)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var list []models.AnomalyEvent
+	var anomalies []models.AnomalyEvent
 	for rows.Next() {
-		var e models.AnomalyEvent
-		// 2. Updated Scan to match the 10 core physics columns
+		var a models.AnomalyEvent
 		err := rows.Scan(
-			&e.PeriodStart,
-			&e.InstrumentToken,
-			&e.Symbol,
-			&e.Type,
-			&e.Direction,
-			&e.TimeKey,
-			&e.LastUpdatedAt,
-			&e.EffortScore,
-			&e.ResultScore,
-			&e.PulseScore,
-			&e.Intensity,
-			&e.PriceValue,
+			&a.PeriodStart, &a.InstrumentToken, &a.Interval, &a.Symbol, &a.Type,
+			&a.TimeKey, &a.LastUpdatedAt, &a.Direction, &a.EffortScore,
+			&a.ResultScore, &a.PulseScore, &a.Intensity, &a.PriceValue,
 		)
 		if err != nil {
-			return nil, err
+			logger.Errorf("Error scanning anomaly row: %v", err)
+			continue
 		}
-		list = append(list, e)
+		anomalies = append(anomalies, a)
 	}
-	return list, nil
+
+	return anomalies, nil
 }
 
 func (r *PostgresRepo) GetMarketDNA(ctx context.Context, token uint32, date time.Time) (*models.MarketDNA, error) {

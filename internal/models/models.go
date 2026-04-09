@@ -21,6 +21,12 @@ type Bar struct {
 	CVD           float64   `json:"cvd"`
 	CVDDivergence float64   `json:"cvd_divergence"` // -1 to 1 Heatmap value
 
+	// Physics Scores
+	EffortScore   float64 `json:"effort_score"`
+	ResultScore   float64 `json:"result_score"`
+	PulseScore    float64 `json:"pulse_score"`
+	PeakTradeSign int     `json:"peak_trade_sign"`
+
 	TotalBuyQty  int64 `json:"total_buy_qty"`
 	TotalSellQty int64 `json:"total_sell_qty"`
 
@@ -51,6 +57,7 @@ type AnomalyType string
 type AnomalyEvent struct {
 	TimeKey         string      `json:"time_key"`
 	PeriodStart     time.Time   `json:"period_start"`
+	Interval        string      `json:"interval"`
 	LastUpdatedAt   time.Time   `json:"last_updated_at"`
 	InstrumentToken uint32      `json:"instrument_token"`
 	Symbol          string      `json:"symbol"`
@@ -117,12 +124,12 @@ type MarketDNA struct {
 }
 
 type TimeBucketDNA struct {
-	TimeKey     string  `json:"time_key"`
-	MedianVol   float64 `json:"median_vol"`
-	MADVol      float64 `json:"mad_vol"`
-	Surge99th   float64 `json:"surge_99th"`
-	MedianRange float64 `json:"median_range"`
-	MADRange    float64 `json:"mad_range"`
+	TimeKey        string  `json:"time_key"`
+	MedianVol      float64 `json:"median_vol"`
+	MADVol         float64 `json:"mad_vol"`
+	SurgeThreshold float64 `json:"surge_threshold"`
+	MedianRange    float64 `json:"median_range"`
+	MADRange       float64 `json:"mad_range"`
 }
 
 type Snapshot struct {
