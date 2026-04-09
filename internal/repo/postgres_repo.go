@@ -206,3 +206,29 @@ func (r *PostgresRepo) GetVolumeProfiles(ctx context.Context, token uint32, date
 
 	return profiles, nil
 }
+
+func (r *PostgresRepo) GetActiveOrder(ctx context.Context, token uint32, isBacktest bool, uid string) (*models.Order, error) {
+	query := `SELECT order_id, status FROM orders 
+              WHERE instrument_token = $1 AND status IN ('OPEN', 'TRIGGER PENDING') 
+              AND is_backtest = $2`
+
+	params := []interface{}{token, isBacktest}
+	if isBacktest {
+		query += " AND firebase_uid = $3"
+		params = append(params, uid)
+	}
+
+	var o models.Order
+	err := r.db.QueryRowContext(ctx, query, params...).Scan(&o.OrderID, &o.Status)
+	if err != nil {
+		return nil, err
+	}
+	return &o, nil
+}
+
+func (r *PostgresRepo) SaveOrder(ctx context.Context, o *models.Order, uid string) error {
+	query := `INSERT INTO orders (instrument_token, symbol, order_id, side, quantity, status, is_backtest, firebase_uid) 
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+	_, err := r.db.ExecContext(ctx, query, o.InstrumentToken, o.Symbol, o.OrderID, o.Side, o.Quantity, o.Status, o.IsBacktest, uid)
+	return err
+}
