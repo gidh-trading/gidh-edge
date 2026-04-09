@@ -8,11 +8,11 @@ import (
 )
 
 type OrderHandler struct {
-	manager *service.OrderManager
+	svc *service.OrderService // Changed from manager *service.OrderManager
 }
 
-func NewOrderHandler(m *service.OrderManager) *OrderHandler {
-	return &OrderHandler{manager: m}
+func NewOrderHandler(s *service.OrderService) *OrderHandler {
+	return &OrderHandler{svc: s}
 }
 
 func (h *OrderHandler) SubmitOrder(w http.ResponseWriter, r *http.Request) {
@@ -28,20 +28,21 @@ func (h *OrderHandler) SubmitOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order, err := h.manager.SubmitOrder(r.Context(), req, uid)
+	// Call svc instead of manager
+	order, err := h.svc.SubmitOrder(r.Context(), req, uid)
 	if err != nil {
 		h.sendError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	h.sendResponse(w, http.StatusOK, "success", order, "Order submitted successfully")
+	h.sendResponse(w, http.StatusOK, "success", order, "Order submitted to engine")
 }
 
 func (h *OrderHandler) GetActiveOrders(w http.ResponseWriter, r *http.Request) {
 	isBacktest := r.URL.Query().Get("backtest") == "true"
 	uid := r.Header.Get("X-Firebase-UID")
 
-	orders, err := h.manager.GetActiveOrders(r.Context(), isBacktest, uid)
+	orders, err := h.svc.GetActiveOrders(r.Context(), isBacktest, uid)
 	if err != nil {
 		h.sendError(w, http.StatusInternalServerError, "Failed to fetch orders")
 		return
