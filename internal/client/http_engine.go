@@ -54,10 +54,15 @@ func (c *HTTPEngineClient) SubmitOrder(ctx context.Context, req models.OrderRequ
 	return &order, nil
 }
 
-func (c *HTTPEngineClient) GetActiveOrders(ctx context.Context, uid string) ([]models.Order, error) {
-	url := fmt.Sprintf("%s/api/engine/orders/active", c.baseURL)
+func (c *HTTPEngineClient) GetActiveOrders(ctx context.Context, uid string, token uint32, date string) ([]models.Order, error) {
+	// UPDATED: Append token and date as query parameters to match the Engine's new endpoint logic
+	url := fmt.Sprintf("%s/api/engine/orders/active?token=%d&date=%s", c.baseURL, token, date)
 
-	httpReq, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
 	httpReq.Header.Set("X-Firebase-UID", uid)
 
 	resp, err := c.client.Do(httpReq)
@@ -68,13 +73,19 @@ func (c *HTTPEngineClient) GetActiveOrders(ctx context.Context, uid string) ([]m
 
 	if resp.StatusCode != http.StatusOK {
 		errorBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("%s", string(errorBody))
+		return nil, fmt.Errorf("engine error (status %d): %s", resp.StatusCode, string(errorBody))
 	}
 
 	var orders []models.Order
 	if err := json.NewDecoder(resp.Body).Decode(&orders); err != nil {
 		return nil, fmt.Errorf("failed to decode engine response: %w", err)
 	}
+
+	// Ensure we return an empty slice instead of nil to keep the frontend clean
+	if orders == nil {
+		return []models.Order{}, nil
+	}
+
 	return orders, nil
 }
 

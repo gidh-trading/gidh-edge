@@ -6,6 +6,7 @@ import (
 	"gidh-edge/internal/service"
 	"gidh-edge/pkg/logger"
 	"net/http"
+	"strconv"
 )
 
 type OrderHandler struct {
@@ -42,7 +43,25 @@ func (h *OrderHandler) SubmitOrder(w http.ResponseWriter, r *http.Request) {
 func (h *OrderHandler) GetActiveOrders(w http.ResponseWriter, r *http.Request) {
 	uid := r.Header.Get("X-Firebase-UID")
 
-	orders, err := h.svc.GetActiveOrders(r.Context(), uid)
+	// Parse query parameters
+	query := r.URL.Query()
+	tokenStr := query.Get("token")
+	date := query.Get("date")
+
+	// QoL: Immediate validation for required filters
+	if tokenStr == "" || date == "" {
+		h.sendError(w, http.StatusBadRequest, "Missing token or date parameter")
+		return
+	}
+
+	token, err := strconv.ParseUint(tokenStr, 10, 32)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, "Invalid instrument token format")
+		return
+	}
+
+	// Pass the filters to the service
+	orders, err := h.svc.GetActiveOrders(r.Context(), uid, uint32(token), date)
 	if err != nil {
 		h.sendError(w, http.StatusInternalServerError, "Failed to fetch orders")
 		return

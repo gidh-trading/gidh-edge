@@ -18,6 +18,7 @@ func (s *OrderService) SubmitOrder(ctx context.Context, req models.OrderRequest,
 	return s.engine.SubmitOrder(ctx, req, uid)
 }
 
-func (s *OrderService) GetActiveOrders(ctx context.Context, uid string) ([]models.Order, error) {
-	return s.engine.GetActiveOrders(ctx, uid)
+func (s *OrderService) GetActiveOrders(ctx context.Context, uid string, token uint32, date string) ([]models.Order, error) {
+	// Forward the context, user ID, and filters to the core engine service
+	return s.engine.GetActiveOrders(ctx, uid, token, date)
 }
