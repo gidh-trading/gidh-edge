@@ -7,6 +7,8 @@ import (
 	"gidh-edge/pkg/logger"
 	"net/http"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type OrderHandler struct {
@@ -68,6 +70,36 @@ func (h *OrderHandler) GetActiveOrders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.sendResponse(w, http.StatusOK, "success", orders, "")
+}
+
+func (h *OrderHandler) UpdateOrderRisk(w http.ResponseWriter, r *http.Request) {
+	orderID := chi.URLParam(r, "id")
+	var req struct {
+		StopLoss   float64 `json:"stop_loss"`
+		TakeProfit float64 `json:"take_profit"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	err := h.svc.UpdateRisk(r.Context(), orderID, req.StopLoss, req.TakeProfit)
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	h.sendResponse(w, http.StatusOK, "success", nil, "Risk updated")
+}
+
+func (h *OrderHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
+	orderID := chi.URLParam(r, "id")
+	err := h.svc.CancelOrder(r.Context(), orderID)
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	h.sendResponse(w, http.StatusOK, "success", nil, "Order cancelled")
 }
 
 func (h *OrderHandler) sendResponse(w http.ResponseWriter, code int, status string, data interface{}, msg string) {

@@ -26,6 +26,25 @@ func NewHTTPEngineClient(url string) *HTTPEngineClient {
 	return &HTTPEngineClient{baseURL: url, client: &http.Client{Timeout: 5 * time.Second}}
 }
 
+func (c *HTTPEngineClient) GetActiveState(ctx context.Context, token uint32, interval string) (EngineState, error) {
+	url := fmt.Sprintf("%s/api/engine/active-state?token=%d&interval=%s", c.baseURL, token, interval)
+
+	httpReq, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return EngineState{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return EngineState{}, fmt.Errorf("engine returned status: %d", resp.StatusCode)
+	}
+
+	var state EngineState
+	json.NewDecoder(resp.Body).Decode(&state)
+	return state, nil
+}
+
 func (c *HTTPEngineClient) SubmitOrder(ctx context.Context, req models.OrderRequest, uid string) (*models.Order, error) {
 	url := fmt.Sprintf("%s/api/engine/orders/submit", c.baseURL)
 
@@ -89,21 +108,41 @@ func (c *HTTPEngineClient) GetActiveOrders(ctx context.Context, uid string, toke
 	return orders, nil
 }
 
-func (c *HTTPEngineClient) GetActiveState(ctx context.Context, token uint32, interval string) (EngineState, error) {
-	url := fmt.Sprintf("%s/api/engine/active-state?token=%d&interval=%s", c.baseURL, token, interval)
+func (c *HTTPEngineClient) UpdateOrderRisk(ctx context.Context, orderID string, sl, tp float64) error {
+	url := fmt.Sprintf("%s/api/engine/orders/modify", c.baseURL)
+	payload, _ := json.Marshal(map[string]any{
+		"id":          orderID,
+		"stop_loss":   sl,
+		"take_profit": tp,
+	})
 
-	httpReq, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
-	resp, err := c.client.Do(httpReq)
+	req, _ := http.NewRequestWithContext(ctx, "PATCH", url, bytes.NewBuffer(payload))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.client.Do(req)
 	if err != nil {
-		return EngineState{}, err
+		return err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return EngineState{}, fmt.Errorf("engine returned status: %d", resp.StatusCode)
+		return fmt.Errorf("engine failed to update risk: status %d", resp.StatusCode)
 	}
+	return nil
+}
 
-	var state EngineState
-	json.NewDecoder(resp.Body).Decode(&state)
-	return state, nil
+func (c *HTTPEngineClient) CancelOrder(ctx context.Context, orderID string) error {
+	url := fmt.Sprintf("%s/api/engine/orders/cancel?id=%s", c.baseURL, orderID)
+	req, _ := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("engine failed to cancel order: status %d", resp.StatusCode)
+	}
+	return nil
 }

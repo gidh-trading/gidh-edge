@@ -14,11 +14,18 @@ func NewOrderService(e *client.HTTPEngineClient) *OrderService {
 	return &OrderService{engine: e}
 }
 
+func (s *OrderService) GetActiveOrders(ctx context.Context, uid string, token uint32, date string) ([]models.Order, error) {
+	return s.engine.GetActiveOrders(ctx, uid, token, date)
+}
+
 func (s *OrderService) SubmitOrder(ctx context.Context, req models.OrderRequest, uid string) (*models.Order, error) {
 	return s.engine.SubmitOrder(ctx, req, uid)
 }
 
-func (s *OrderService) GetActiveOrders(ctx context.Context, uid string, token uint32, date string) ([]models.Order, error) {
-	// Forward the context, user ID, and filters to the core engine service
-	return s.engine.GetActiveOrders(ctx, uid, token, date)
+func (s *OrderService) UpdateRisk(ctx context.Context, orderID string, sl, tp float64) error {
+	return s.engine.UpdateOrderRisk(ctx, orderID, sl, tp)
+}
+
+func (s *OrderService) CancelOrder(ctx context.Context, orderID string) error {
+	return s.engine.CancelOrder(ctx, orderID)
 }

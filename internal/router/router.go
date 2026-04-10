@@ -14,7 +14,7 @@ func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler, order
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Firebase-UID", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: true,
@@ -30,8 +30,15 @@ func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler, order
 		// Updated utility endpoint (Date removed, renamed to market-dna)
 		r.Get("/market-dna/{token}/{date}", edgeH.GetMarketDNA)
 
-		r.Post("/orders/submit", orderH.SubmitOrder)
-		r.Get("/orders/active", orderH.GetActiveOrders)
+		r.Route("/orders", func(r chi.Router) {
+			r.Post("/submit", orderH.SubmitOrder)
+			r.Get("/active", orderH.GetActiveOrders)
+
+			r.Route("/{id}", func(r chi.Router) {
+				r.Patch("/risk", orderH.UpdateOrderRisk) // PATCH /api/orders/{id}/risk
+				r.Delete("/", orderH.CancelOrder)        // DELETE /api/orders/{id}/
+			})
+		})
 
 	})
 	return r
