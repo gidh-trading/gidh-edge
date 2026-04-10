@@ -47,6 +47,7 @@ func (c *HTTPEngineClient) SubmitOrder(ctx context.Context, req models.OrderRequ
 	}
 
 	var order models.Order
+
 	if err := json.NewDecoder(resp.Body).Decode(&order); err != nil {
 		return nil, fmt.Errorf("failed to decode engine response: %w", err)
 	}

@@ -142,14 +142,15 @@ type Snapshot struct {
 
 // OrderRequest matches the backend Engine's expectation
 type OrderRequest struct {
-	Token      uint32  `json:"token"`
-	Symbol     string  `json:"symbol"`
-	Side       string  `json:"side"`
-	OrderType  string  `json:"order_type"`
-	Quantity   int     `json:"quantity"`
-	Price      float64 `json:"price"`
-	StopLoss   float64 `json:"stop_loss"`
-	TakeProfit float64 `json:"take_profit"`
+	Token       uint32  `json:"token"`
+	Symbol      string  `json:"symbol"`
+	TradingDate string  `json:"trading_date"`
+	Side        string  `json:"side"`
+	OrderType   string  `json:"order_type"`
+	Quantity    int     `json:"quantity"`
+	Price       float64 `json:"price"`
+	StopLoss    float64 `json:"stop_loss"`
+	TakeProfit  float64 `json:"take_profit"`
 }
 
 // Order matches the updated DB schema from the backend
