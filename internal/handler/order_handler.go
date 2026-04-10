@@ -40,10 +40,9 @@ func (h *OrderHandler) SubmitOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) GetActiveOrders(w http.ResponseWriter, r *http.Request) {
-	isBacktest := r.URL.Query().Get("backtest") == "true"
 	uid := r.Header.Get("X-Firebase-UID")
 
-	orders, err := h.svc.GetActiveOrders(r.Context(), isBacktest, uid)
+	orders, err := h.svc.GetActiveOrders(r.Context(), uid)
 	if err != nil {
 		h.sendError(w, http.StatusInternalServerError, "Failed to fetch orders")
 		return

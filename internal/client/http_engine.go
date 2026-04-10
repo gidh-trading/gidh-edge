@@ -53,8 +53,8 @@ func (c *HTTPEngineClient) SubmitOrder(ctx context.Context, req models.OrderRequ
 	return &order, nil
 }
 
-func (c *HTTPEngineClient) GetActiveOrders(ctx context.Context, isBacktest bool, uid string) ([]models.Order, error) {
-	url := fmt.Sprintf("%s/api/engine/orders/active?backtest=%t", c.baseURL, isBacktest)
+func (c *HTTPEngineClient) GetActiveOrders(ctx context.Context, uid string) ([]models.Order, error) {
+	url := fmt.Sprintf("%s/api/engine/orders/active", c.baseURL)
 
 	httpReq, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
 	httpReq.Header.Set("X-Firebase-UID", uid)

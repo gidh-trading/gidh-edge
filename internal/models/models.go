@@ -150,7 +150,6 @@ type OrderRequest struct {
 	Price      float64 `json:"price"`
 	StopLoss   float64 `json:"stop_loss"`
 	TakeProfit float64 `json:"take_profit"`
-	IsBacktest bool    `json:"is_backtest"`
 }
 
 // Order matches the updated DB schema from the backend
@@ -159,6 +158,7 @@ type Order struct {
 	OrderID         string                 `json:"order_id"`
 	InstrumentToken uint32                 `json:"instrument_token"`
 	Symbol          string                 `json:"symbol"`
+	TradingDate     time.Time              `json:"trading_date"`
 	FirebaseUID     string                 `json:"firebase_uid"`
 	Side            string                 `json:"side"`
 	OrderType       string                 `json:"order_type"`
@@ -167,7 +167,6 @@ type Order struct {
 	StopLoss        float64                `json:"stop_loss"`
 	TakeProfit      float64                `json:"take_profit"`
 	Status          string                 `json:"status"`
-	IsBacktest      bool                   `json:"is_backtest"`
 	EntryPrice      float64                `json:"entry_price"`
 	ExitPrice       float64                `json:"exit_price"`
 	Stats           map[string]interface{} `json:"stats"`
