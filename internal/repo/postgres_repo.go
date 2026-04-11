@@ -59,7 +59,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
          AND timestamp::date = (
              SELECT MAX(timestamp::date) 
              FROM gidh_bars 
-             WHERE instrument_token = $1 AND timestamp::date <= $2::date
+             WHERE instrument_token = $1 AND timestamp::date = $2::date
          )
        ORDER BY timestamp ASC`
 
@@ -166,7 +166,7 @@ func (r *PostgresRepo) GetVolumeProfiles(ctx context.Context, token uint32, date
 	// 1. Update the query to include the hvns and lvns columns
 	query := `SELECT stock_name, instrument_token, trading_date, poc, vah, val, nodes, hvns, lvns 
               FROM gidh_volume_profiles 
-              WHERE instrument_token = $1 AND trading_date <= $2::date
+              WHERE instrument_token = $1 AND trading_date = $2::date::date
               ORDER BY trading_date DESC LIMIT $3`
 
 	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"), limit)
