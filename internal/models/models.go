@@ -27,8 +27,12 @@ type Bar struct {
 	PulseScore    float64 `json:"pulse_score"`
 	PeakTradeSign int     `json:"peak_trade_sign"`
 
-	TotalBuyQty  int64 `json:"total_buy_qty"`
-	TotalSellQty int64 `json:"total_sell_qty"`
+	IsClosed bool `json:"is_closed"`
+
+	TotalBuyQty             int64 `json:"total_buy_qty"`
+	TotalSellQty            int64 `json:"total_sell_qty"`
+	TotalExecutedBuyVolume  int64 `json:"total_executed_buy_volume"`
+	TotalExecutedSellVolume int64 `json:"total_executed_sell_volume"`
 
 	VWAP float64 `json:"vwap"`
 	POC  float64 `json:"poc"`

@@ -52,7 +52,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
           timestamp, open, high, low, close, volume,
           cvd,cvd_divergence, effort_score,result_score,
           pulse_score,peak_trade_sign, total_buy_qty, total_sell_qty, 
-          vwap, poc, vah, val
+          total_executed_buy_volume,total_executed_sell_volume,vwap, poc, vah, val
        FROM gidh_bars 
        WHERE instrument_token = $1 
          AND interval = $3
@@ -72,6 +72,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	var bars []models.Bar
 	for rows.Next() {
 		var b models.Bar
+		b.IsClosed = true
 		// Updated Scan to include support_levels and resistance_levels
 		err := rows.Scan(
 			&b.Timestamp,
@@ -88,6 +89,8 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.PeakTradeSign,
 			&b.TotalBuyQty,
 			&b.TotalSellQty,
+			&b.TotalExecutedBuyVolume,
+			&b.TotalExecutedSellVolume,
 			&b.VWAP,
 			&b.POC,
 			&b.VAH,
@@ -100,6 +103,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 
 		bars = append(bars, b)
 	}
+
 	return bars, nil
 }
 
