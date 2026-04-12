@@ -102,6 +102,28 @@ func (h *OrderHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
 	h.sendResponse(w, http.StatusOK, "success", nil, "Order cancelled")
 }
 
+func (h *OrderHandler) ExitPosition(w http.ResponseWriter, r *http.Request) {
+	var req models.ExitRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.sendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	uid := r.Header.Get("X-Firebase-UID")
+	if uid == "" {
+		h.sendError(w, http.StatusUnauthorized, "Missing user context")
+		return
+	}
+
+	err := h.svc.ExitPosition(r.Context(), req, uid)
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	h.sendResponse(w, http.StatusOK, "success", nil, "Exit order processed")
+}
+
 func (h *OrderHandler) sendResponse(w http.ResponseWriter, code int, status string, data interface{}, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)

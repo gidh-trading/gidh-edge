@@ -146,3 +146,25 @@ func (c *HTTPEngineClient) CancelOrder(ctx context.Context, orderID string) erro
 	}
 	return nil
 }
+
+func (c *HTTPEngineClient) ExitPosition(ctx context.Context, req models.ExitRequest, uid string) error {
+	url := fmt.Sprintf("%s/api/engine/orders/exit", c.baseURL)
+
+	body, _ := json.Marshal(req)
+	httpReq, _ := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(body))
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("X-Firebase-UID", uid)
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("engine unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		errorBody, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("engine exit failed: %s", string(errorBody))
+	}
+
+	return nil
+}

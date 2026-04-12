@@ -29,3 +29,7 @@ func (s *OrderService) UpdateRisk(ctx context.Context, orderID string, sl, tp fl
 func (s *OrderService) CancelOrder(ctx context.Context, orderID string) error {
 	return s.engine.CancelOrder(ctx, orderID)
 }
+
+func (s *OrderService) ExitPosition(ctx context.Context, req models.ExitRequest, uid string) error {
+	return s.engine.ExitPosition(ctx, req, uid)
+}

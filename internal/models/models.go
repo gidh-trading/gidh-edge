@@ -157,6 +157,12 @@ type OrderRequest struct {
 	TakeProfit  float64 `json:"take_profit"`
 }
 
+type ExitRequest struct {
+	ID        string  `json:"id"`
+	OrderType string  `json:"order_type"` // "MARKET" or "LIMIT"
+	Price     float64 `json:"price"`      // Required if LIMIT
+}
+
 // Order matches the updated DB schema from the backend
 type Order struct {
 	ID              string                 `json:"id"`

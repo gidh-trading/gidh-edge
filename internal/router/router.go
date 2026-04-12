@@ -32,11 +32,12 @@ func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler, order
 
 		r.Route("/orders", func(r chi.Router) {
 			r.Post("/submit", orderH.SubmitOrder)
+			r.Post("/exit", orderH.ExitPosition)
 			r.Get("/active", orderH.GetActiveOrders)
 
 			r.Route("/{id}", func(r chi.Router) {
-				r.Patch("/risk", orderH.UpdateOrderRisk) // PATCH /api/orders/{id}/risk
-				r.Delete("/", orderH.CancelOrder)        // DELETE /api/orders/{id}/
+				r.Patch("/risk", orderH.UpdateOrderRisk)
+				r.Delete("/", orderH.CancelOrder)
 			})
 		})
 
