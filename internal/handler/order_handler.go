@@ -7,8 +7,6 @@ import (
 	"gidh-edge/pkg/logger"
 	"net/http"
 	"strconv"
-
-	"github.com/go-chi/chi/v5"
 )
 
 type OrderHandler struct {
@@ -73,8 +71,9 @@ func (h *OrderHandler) GetActiveOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) UpdateOrderRisk(w http.ResponseWriter, r *http.Request) {
-	orderID := chi.URLParam(r, "id")
+	// 👇 CHANGED: Extract ID from the JSON body instead of chi.URLParam
 	var req struct {
+		ID         string  `json:"id"`
 		StopLoss   float64 `json:"stop_loss"`
 		TakeProfit float64 `json:"take_profit"`
 	}
@@ -84,7 +83,12 @@ func (h *OrderHandler) UpdateOrderRisk(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.svc.UpdateRisk(r.Context(), orderID, req.StopLoss, req.TakeProfit)
+	if req.ID == "" {
+		h.sendError(w, http.StatusBadRequest, "Missing order ID")
+		return
+	}
+
+	err := h.svc.UpdateRisk(r.Context(), req.ID, req.StopLoss, req.TakeProfit)
 	if err != nil {
 		h.sendError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -93,7 +97,13 @@ func (h *OrderHandler) UpdateOrderRisk(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrderHandler) CancelOrder(w http.ResponseWriter, r *http.Request) {
-	orderID := chi.URLParam(r, "id")
+	// 👇 CHANGED: Extract ID from the query parameters (e.g., ?id=...) instead of chi.URLParam
+	orderID := r.URL.Query().Get("id")
+	if orderID == "" {
+		h.sendError(w, http.StatusBadRequest, "Missing order ID")
+		return
+	}
+
 	err := h.svc.CancelOrder(r.Context(), orderID)
 	if err != nil {
 		h.sendError(w, http.StatusInternalServerError, err.Error())
