@@ -144,60 +144,6 @@ type Snapshot struct {
 	VolumeProfiles   []VolumeProfile `json:"volume_profiles"`
 }
 
-// OrderRequest matches the backend Engine's expectation
-type OrderRequest struct {
-	Token       uint32  `json:"token"`
-	Symbol      string  `json:"symbol"`
-	TradingDate string  `json:"trading_date"`
-	Side        string  `json:"side"`
-	OrderType   string  `json:"order_type"`
-	Quantity    int     `json:"quantity"`
-	Price       float64 `json:"price"`
-	StopLoss    float64 `json:"stop_loss"`
-	TakeProfit  float64 `json:"take_profit"`
-}
-
-type ExitRequest struct {
-	ID        string  `json:"id"`
-	OrderType string  `json:"order_type"` // "MARKET" or "LIMIT"
-	Price     float64 `json:"price"`      // Required if LIMIT
-}
-
-type Position struct {
-	ID              string    `json:"id"`
-	FirebaseUID     string    `json:"firebase_uid"`
-	InstrumentToken uint32    `json:"instrument_token"`
-	Symbol          string    `json:"symbol"`
-	TradingDate     time.Time `json:"trading_date"`
-	Side            string    `json:"side"`          // "BUY" or "SELL"
-	Quantity        int       `json:"quantity"`      // Net quantity
-	AveragePrice    float64   `json:"average_price"` // Weighted average entry
-	Status          string    `json:"status"`        // "ACTIVE" or "CLOSED"
-	RealizedPnL     float64   `json:"realized_pnl"`
-	UpdatedAt       time.Time `json:"updated_at"`
-}
-
-// Order matches the updated DB schema from the backend
-type Order struct {
-	ID              string                 `json:"id"`
-	OrderID         string                 `json:"order_id"`
-	InstrumentToken uint32                 `json:"instrument_token"`
-	Symbol          string                 `json:"symbol"`
-	TradingDate     time.Time              `json:"trading_date"`
-	FirebaseUID     string                 `json:"firebase_uid"`
-	Side            string                 `json:"side"`
-	OrderType       string                 `json:"order_type"`
-	Quantity        int                    `json:"quantity"`
-	Price           float64                `json:"price"`
-	StopLoss        float64                `json:"stop_loss"`
-	TakeProfit      float64                `json:"take_profit"`
-	Status          string                 `json:"status"`
-	EntryPrice      float64                `json:"entry_price"`
-	ExitPrice       float64                `json:"exit_price"`
-	Stats           map[string]interface{} `json:"stats"`
-	CreatedAt       time.Time              `json:"created_at"`
-}
-
 // JSONResponse is the standard Edge API response wrapper
 type JSONResponse struct {
 	Status  string      `json:"status"`

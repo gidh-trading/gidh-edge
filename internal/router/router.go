@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler, orderH *handler.OrderHandler) *chi.Mux {
+func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger, middleware.Recoverer)
 
@@ -29,19 +29,6 @@ func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler, order
 
 		// Updated utility endpoint (Date removed, renamed to market-dna)
 		r.Get("/market-dna/{token}/{date}", edgeH.GetMarketDNA)
-
-		r.Route("/positions", func(r chi.Router) {
-			r.Get("/active", orderH.GetActivePositions)
-		})
-
-		r.Route("/orders", func(r chi.Router) {
-			r.Post("/submit", orderH.SubmitOrder)
-			r.Post("/exit", orderH.ExitPosition)
-			r.Get("/active", orderH.GetActiveOrders)
-
-			r.Patch("/modify", orderH.UpdateOrderRisk)
-			r.Delete("/cancel", orderH.CancelOrder)
-		})
 
 	})
 	return r
