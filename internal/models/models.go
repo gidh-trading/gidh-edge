@@ -163,6 +163,20 @@ type ExitRequest struct {
 	Price     float64 `json:"price"`      // Required if LIMIT
 }
 
+type Position struct {
+	ID              string    `json:"id"`
+	FirebaseUID     string    `json:"firebase_uid"`
+	InstrumentToken uint32    `json:"instrument_token"`
+	Symbol          string    `json:"symbol"`
+	TradingDate     time.Time `json:"trading_date"`
+	Side            string    `json:"side"`          // "BUY" or "SELL"
+	Quantity        int       `json:"quantity"`      // Net quantity
+	AveragePrice    float64   `json:"average_price"` // Weighted average entry
+	Status          string    `json:"status"`        // "ACTIVE" or "CLOSED"
+	RealizedPnL     float64   `json:"realized_pnl"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
 // Order matches the updated DB schema from the backend
 type Order struct {
 	ID              string                 `json:"id"`

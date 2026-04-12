@@ -168,3 +168,36 @@ func (c *HTTPEngineClient) ExitPosition(ctx context.Context, req models.ExitRequ
 
 	return nil
 }
+
+func (c *HTTPEngineClient) GetActivePositions(ctx context.Context, uid string) ([]models.Position, error) {
+	url := fmt.Sprintf("%s/api/engine/positions/active", c.baseURL)
+
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("X-Firebase-UID", uid)
+
+	resp, err := c.client.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("engine unreachable: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		errorBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("engine error (status %d): %s", resp.StatusCode, string(errorBody))
+	}
+
+	var positions []models.Position
+	if err := json.NewDecoder(resp.Body).Decode(&positions); err != nil {
+		return nil, fmt.Errorf("failed to decode engine response: %w", err)
+	}
+
+	if positions == nil {
+		return []models.Position{}, nil
+	}
+
+	return positions, nil
+}

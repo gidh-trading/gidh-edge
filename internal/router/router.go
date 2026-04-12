@@ -30,6 +30,10 @@ func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler, order
 		// Updated utility endpoint (Date removed, renamed to market-dna)
 		r.Get("/market-dna/{token}/{date}", edgeH.GetMarketDNA)
 
+		r.Route("/positions", func(r chi.Router) {
+			r.Get("/active", orderH.GetActivePositions)
+		})
+
 		r.Route("/orders", func(r chi.Router) {
 			r.Post("/submit", orderH.SubmitOrder)
 			r.Post("/exit", orderH.ExitPosition)

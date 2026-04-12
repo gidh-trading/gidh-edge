@@ -124,6 +124,22 @@ func (h *OrderHandler) ExitPosition(w http.ResponseWriter, r *http.Request) {
 	h.sendResponse(w, http.StatusOK, "success", nil, "Exit order processed")
 }
 
+func (h *OrderHandler) GetActivePositions(w http.ResponseWriter, r *http.Request) {
+	uid := r.Header.Get("X-Firebase-UID")
+	if uid == "" {
+		h.sendError(w, http.StatusUnauthorized, "Missing user context")
+		return
+	}
+
+	positions, err := h.svc.GetActivePositions(r.Context(), uid)
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, "Failed to fetch active positions")
+		return
+	}
+
+	h.sendResponse(w, http.StatusOK, "success", positions, "")
+}
+
 func (h *OrderHandler) sendResponse(w http.ResponseWriter, code int, status string, data interface{}, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)

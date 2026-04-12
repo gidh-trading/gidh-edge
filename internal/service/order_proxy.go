@@ -33,3 +33,7 @@ func (s *OrderService) CancelOrder(ctx context.Context, orderID string) error {
 func (s *OrderService) ExitPosition(ctx context.Context, req models.ExitRequest, uid string) error {
 	return s.engine.ExitPosition(ctx, req, uid)
 }
+
+func (s *OrderService) GetActivePositions(ctx context.Context, uid string) ([]models.Position, error) {
+	return s.engine.GetActivePositions(ctx, uid)
+}
