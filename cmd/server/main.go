@@ -27,13 +27,15 @@ func main() {
 	// Initialize lean services
 	edgeSvc := service.NewEdgeService(repoInstance, engineClient)
 	snapSvc := service.NewSnapshotService(repoInstance, engineClient)
+	orderSvc := service.NewOrderService(engineClient)
 
 	// Initialize handlers
 	edgeH := handler.NewEdgeHandler(edgeSvc)
 	snapH := handler.NewSnapshotHandler(snapSvc)
+	orderH := handler.NewOrderHandler(orderSvc)
 
 	// Pass all three handlers to the router
-	r := router.NewRouter(edgeH, snapH)
+	r := router.NewRouter(edgeH, snapH, orderH)
 
 	logger.Infof("GIDH Edge Command Center listening on :%s", cfg.API.Port)
 	http.ListenAndServe(":"+cfg.API.Port, r)

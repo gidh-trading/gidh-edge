@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -41,4 +42,25 @@ func (c *HTTPEngineClient) GetActiveState(ctx context.Context, token uint32, int
 	var state EngineState
 	json.NewDecoder(resp.Body).Decode(&state)
 	return state, nil
+}
+
+func (c *HTTPEngineClient) ForwardRawRequest(ctx context.Context, method, uri string, body io.Reader, headers http.Header) (*http.Response, error) {
+	fullURL := c.baseURL + uri
+	req, err := http.NewRequestWithContext(ctx, method, fullURL, body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Forward necessary headers (like Auth) from the UI to the backend
+	if contentType := headers.Get("Content-Type"); contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	} else {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	if auth := headers.Get("Authorization"); auth != "" {
+		req.Header.Set("Authorization", auth)
+	}
+
+	return c.client.Do(req)
 }

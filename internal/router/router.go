@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler) *chi.Mux {
+func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler, orderH *handler.OrderHandler) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger, middleware.Recoverer)
 
@@ -23,13 +23,14 @@ func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler) *chi.
 
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/instruments", edgeH.GetAvailableInstruments)
-
-		// Updated endpoint for the T=0 initialization
 		r.Get("/snapshot/{token}/{date}", snapH.GetSnapshot)
-
-		// Updated utility endpoint (Date removed, renamed to market-dna)
 		r.Get("/market-dna/{token}/{date}", edgeH.GetMarketDNA)
 
+		// --- OMS Proxy Routes ---
+		r.Post("/order/place", orderH.HandleProxy)
+		r.Put("/order/modify", orderH.HandleProxy)
+		r.Delete("/order/cancel", orderH.HandleProxy)
+		r.Get("/order/state", orderH.HandleProxy)
 	})
 	return r
 }
