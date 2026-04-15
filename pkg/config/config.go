@@ -34,7 +34,7 @@ func Load() *Config {
 
 	var port, engineURL, dbURL string
 
-	if mode == "backtesting" {
+	if mode == "backtest" {
 		port = getEnv("BACKTEST_API_PORT", "8081")
 		engineURL = getEnv("BACKTEST_ENGINE_URL", "http://localhost:9091")
 		dbURL = getEnv("BACKTEST_DATABASE_URL", "postgres://postgres:password@localhost:5432/gidh_backtest?sslmode=disable")
