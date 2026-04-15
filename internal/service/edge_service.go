@@ -42,3 +42,7 @@ func (s *EdgeService) GetEngineStatus(ctx context.Context) string {
 	}
 	return "active"
 }
+
+func (s *EdgeService) GetAllInstruments(ctx context.Context, date time.Time) ([]models.Instrument, error) {
+	return s.repo.GetInstruments(ctx, date)
+}

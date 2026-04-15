@@ -34,6 +34,22 @@ func (h *EdgeHandler) GetAvailableInstruments(w http.ResponseWriter, r *http.Req
 	h.sendResponse(w, http.StatusOK, "success", instruments, "")
 }
 
+// GetAllInstruments handles /api/instruments/all (global list)
+func (h *EdgeHandler) GetAllInstruments(w http.ResponseWriter, r *http.Request) {
+	dateStr := r.URL.Query().Get("date")
+	queryDate, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		queryDate = time.Now()
+	}
+
+	instruments, err := h.service.GetAllInstruments(r.Context(), queryDate)
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, "Instrument retrieval failed")
+		return
+	}
+	h.sendResponse(w, http.StatusOK, "success", instruments, "")
+}
+
 func (h *EdgeHandler) GetMarketDNA(w http.ResponseWriter, r *http.Request) {
 	tokenStr := chi.URLParam(r, "token")
 	dateStr := chi.URLParam(r, "date")

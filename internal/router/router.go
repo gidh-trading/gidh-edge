@@ -8,7 +8,12 @@ import (
 	"github.com/go-chi/cors"
 )
 
-func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler, orderH *handler.OrderHandler) *chi.Mux {
+func NewRouter(
+	edgeH *handler.EdgeHandler,
+	snapH *handler.SnapshotHandler,
+	orderH *handler.OrderHandler,
+	backtestH *handler.BacktestHandler,
+) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger, middleware.Recoverer)
 
@@ -23,6 +28,7 @@ func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler, order
 
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/instruments", edgeH.GetAvailableInstruments)
+		r.Get("/instruments/all", edgeH.GetAllInstruments)
 		r.Get("/snapshot/{token}/{date}", snapH.GetSnapshot)
 		r.Get("/market-dna/{token}/{date}", edgeH.GetMarketDNA)
 
@@ -31,6 +37,11 @@ func NewRouter(edgeH *handler.EdgeHandler, snapH *handler.SnapshotHandler, order
 		r.Put("/order/modify", orderH.HandleProxy)
 		r.Delete("/order/cancel", orderH.HandleProxy)
 		r.Get("/order/state", orderH.HandleProxy)
+
+		// --- Backtest Proxy Routes ---
+		r.Post("/backtest/start", backtestH.HandleProxy)
+		r.Post("/backtest/stop", backtestH.HandleProxy)
+		r.Get("/backtest/available-dates", backtestH.HandleProxy)
 	})
 	return r
 }

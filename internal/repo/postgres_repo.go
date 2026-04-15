@@ -39,6 +39,27 @@ func (r *PostgresRepo) GetAvailable(ctx context.Context, date time.Time) ([]mode
 	return list, nil
 }
 
+func (r *PostgresRepo) GetInstruments(ctx context.Context, date time.Time) ([]models.Instrument, error) {
+	query := `SELECT DISTINCT instrument_token, symbol 
+              FROM instrument_configs 
+              ORDER BY symbol`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var list []models.Instrument
+	for rows.Next() {
+		var i models.Instrument
+		if err := rows.Scan(&i.Token, &i.Symbol); err != nil {
+			return nil, err
+		}
+		list = append(list, i)
+	}
+	return list, nil
+}
+
 func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.Time, interval string) ([]models.Bar, error) {
 
 	// Map UI interval (1m, 5m) to DB format (1m0s, 5m0s)
