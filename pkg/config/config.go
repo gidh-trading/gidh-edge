@@ -3,6 +3,7 @@ package config
 import (
 	"gidh-edge/pkg/env"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -15,22 +16,47 @@ type APIConfig struct {
 	Port      string
 	EngineURL string
 }
-type DBConfig struct{ ConnString string }
-type AppConfig struct{ LogLevel string }
+
+type DBConfig struct {
+	ConnString string
+}
+
+type AppConfig struct {
+	LogLevel string
+	Mode     string
+}
 
 func Load() *Config {
 	_ = env.Load(".env") // Load .env if it exists
 
+	// Determine the mode, defaulting to "live" if not set
+	mode := strings.ToLower(getEnv("MODE", "live"))
+
+	var port, engineURL, dbURL string
+
+	if mode == "backtesting" {
+		port = getEnv("BACKTEST_API_PORT", "8081")
+		engineURL = getEnv("BACKTEST_ENGINE_URL", "http://localhost:9091")
+		dbURL = getEnv("BACKTEST_DATABASE_URL", "postgres://postgres:password@localhost:5432/gidh_backtest?sslmode=disable")
+	} else {
+		// Default to live configuration
+		// We use standard variables as fallbacks here for backwards compatibility
+		port = getEnv("LIVE_API_PORT", "8080")
+		engineURL = getEnv("LIVE_ENGINE_URL", "http://localhost:9090")
+		dbURL = getEnv("LIVE_DATABASE_URL", "")
+	}
+
 	return &Config{
 		API: APIConfig{
-			Port:      getEnv("API_PORT", "8080"),
-			EngineURL: getEnv("ENGINE_URL", "http://localhost:8081"), // Added Engine URL
+			Port:      port,
+			EngineURL: engineURL,
 		},
 		DB: DBConfig{
-			ConnString: getEnv("DATABASE_URL", "postgres://postgres:password@localhost:5432/gidh?sslmode=disable"),
+			ConnString: dbURL,
 		},
 		App: AppConfig{
 			LogLevel: getEnv("LOG_LEVEL", "info"),
+			Mode:     mode,
 		},
 	}
 }
