@@ -30,7 +30,7 @@ func Load() *Config {
 	_ = env.Load(".env") // Load .env if it exists
 
 	// Determine the mode, defaulting to "live" if not set
-	mode := strings.ToLower(getEnv("MODE", "live"))
+	mode := strings.ToLower(getEnv("MODE", "backtest"))
 
 	var port, engineURL, dbURL string
 
