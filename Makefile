@@ -37,7 +37,7 @@ stop:
 
 # View PM2 logs
 logs:
-	pm2 logs $(APP_NAME)
+	pm2 logs
 
 # Clean build artifacts
 clean:
