@@ -40,8 +40,9 @@ func NewRouter(
 
 		// --- Backtest Proxy Routes ---
 		r.Post("/backtest/start", backtestH.HandleProxy)
-		r.Post("/backtest/stop", backtestH.HandleProxy)
+		r.Get("/backtest/stop", backtestH.HandleProxy)
 		r.Get("/backtest/available-dates", backtestH.HandleProxy)
+		r.Get("/backtest/status", backtestH.HandleProxy)
 	})
 	return r
 }
