@@ -30,10 +30,19 @@ backtest: build
 		|| MODE=backtest pm2 start ./$(BINARY) --name $(APP_NAME)-backtest
 	@pm2 save
 
-# Stop all PM2 instances for this app
-stop:
+
+# Stop LIVE mode only
+stop-live:
+	@echo "Stopping $(APP_NAME)-live..."
 	pm2 stop $(APP_NAME)-live || true
+
+# Stop BACKTEST mode only
+stop-backtest:
+	@echo "Stopping $(APP_NAME)-backtest..."
 	pm2 stop $(APP_NAME)-backtest || true
+
+# Stop everything
+stop-all: stop-live stop-backtest
 
 # View PM2 logs
 logs:

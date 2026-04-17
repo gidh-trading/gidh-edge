@@ -1,7 +1,10 @@
 package router
 
 import (
+	"context"
 	"gidh-edge/internal/handler"
+	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -39,10 +42,40 @@ func NewRouter(
 		r.Get("/order/state", orderH.HandleProxy)
 
 		// --- Backtest Proxy Routes ---
-		r.Post("/backtest/start", backtestH.HandleProxy)
+		r.With(TimeoutMiddleware(3*time.Minute)).Post("/backtest/start", backtestH.HandleProxy)
 		r.Get("/backtest/stop", backtestH.HandleProxy)
 		r.Get("/backtest/available-dates", backtestH.HandleProxy)
 		r.Get("/backtest/status", backtestH.HandleProxy)
 	})
 	return r
+}
+
+// TimeoutMiddleware is a custom middleware that applies a timeout to a specific handler
+func TimeoutMiddleware(timeout time.Duration) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Create a context with timeout derived from the request context
+			ctx, cancel := context.WithTimeout(r.Context(), timeout)
+			defer cancel()
+
+			// Create a channel to signal completion
+			done := make(chan struct{})
+
+			go func() {
+				next.ServeHTTP(w, r.WithContext(ctx))
+				close(done)
+			}()
+
+			select {
+			case <-done:
+				// Handler completed within timeout
+				return
+			case <-ctx.Done():
+				// Timeout occurred
+				w.WriteHeader(http.StatusGatewayTimeout)
+				w.Write([]byte(`{"error": "request timeout"}`))
+				return
+			}
+		})
+	}
 }
