@@ -12,14 +12,15 @@ type Instrument struct {
 }
 
 type Bar struct {
-	Timestamp     time.Time `json:"timestamp"`
-	Open          float64   `json:"open"`
-	High          float64   `json:"high"`
-	Low           float64   `json:"low"`
-	Close         float64   `json:"close"`
-	Volume        int64     `json:"volume"`
-	CVD           float64   `json:"cvd"`
-	CVDDivergence float64   `json:"cvd_divergence"` // -1 to 1 Heatmap value
+	Timestamp           time.Time `json:"timestamp"`
+	Open                float64   `json:"open"`
+	High                float64   `json:"high"`
+	Low                 float64   `json:"low"`
+	Close               float64   `json:"close"`
+	Volume              int64     `json:"volume"`
+	CVD                 float64   `json:"cvd"`
+	CVDDivergence       float64   `json:"cvd_divergence"`
+	StructuralDominance float64   `json:"structural_dominance"`
 
 	// Physics Scores
 	EffortScore   float64 `json:"effort_score"`
