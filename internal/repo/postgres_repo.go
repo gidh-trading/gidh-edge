@@ -71,7 +71,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	query := `
        SELECT 
           timestamp, open, high, low, close, volume,
-          cvd,cvd_divergence, effort_score,result_score,
+          cvd,cvd_divergence,structural_dominance, effort_score,result_score,
           pulse_score,peak_trade_sign, total_buy_qty, total_sell_qty, 
           total_executed_buy_volume,total_executed_sell_volume,vwap, poc, vah, val
        FROM gidh_bars 
@@ -104,6 +104,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.Volume,
 			&b.CVD,
 			&b.CVDDivergence,
+			&b.StructuralDominance,
 			&b.EffortScore,
 			&b.ResultScore,
 			&b.PulseScore,
