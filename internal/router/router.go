@@ -14,7 +14,6 @@ import (
 func NewRouter(
 	edgeH *handler.EdgeHandler,
 	snapH *handler.SnapshotHandler,
-	orderH *handler.OrderHandler,
 	backtestH *handler.BacktestHandler,
 ) *chi.Mux {
 	r := chi.NewRouter()
@@ -34,12 +33,6 @@ func NewRouter(
 		r.Get("/instruments/all", edgeH.GetAllInstruments)
 		r.Get("/snapshot/{token}/{date}", snapH.GetSnapshot)
 		r.Get("/market-dna/{token}/{date}", edgeH.GetMarketDNA)
-
-		// --- OMS Proxy Routes ---
-		r.Post("/order/place", orderH.HandleProxy)
-		r.Put("/order/modify", orderH.HandleProxy)
-		r.Delete("/order/cancel", orderH.HandleProxy)
-		r.Get("/order/state", orderH.HandleProxy)
 
 		// --- Backtest Proxy Routes ---
 		r.With(TimeoutMiddleware(3*time.Minute)).Post("/backtest/start", backtestH.HandleProxy)

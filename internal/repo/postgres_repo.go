@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"gidh-edge/internal/models"
 	"gidh-edge/pkg/logger"
-	"strings"
 	"time"
 )
 
@@ -19,11 +18,11 @@ func NewPostgresRepo(db *sql.DB) *PostgresRepo {
 }
 
 func (r *PostgresRepo) GetAvailable(ctx context.Context, date time.Time) ([]models.Instrument, error) {
-	query := `SELECT DISTINCT c.instrument_token, c.symbol 
+	query := `SELECT DISTINCT c.instrument_token, c.stock_name 
               FROM instrument_configs c 
               INNER JOIN gidh_bars b ON c.instrument_token = b.instrument_token 
               WHERE b.timestamp::date = $1
-              ORDER BY c.symbol`
+              ORDER BY c.stock_name`
 	rows, err := r.db.QueryContext(ctx, query, date.Format("2006-01-02"))
 	if err != nil {
 		return nil, err
@@ -33,16 +32,16 @@ func (r *PostgresRepo) GetAvailable(ctx context.Context, date time.Time) ([]mode
 	var list []models.Instrument
 	for rows.Next() {
 		var i models.Instrument
-		rows.Scan(&i.Token, &i.Symbol)
+		rows.Scan(&i.Token, &i.StockName)
 		list = append(list, i)
 	}
 	return list, nil
 }
 
 func (r *PostgresRepo) GetInstruments(ctx context.Context, date time.Time) ([]models.Instrument, error) {
-	query := `SELECT DISTINCT instrument_token, symbol 
+	query := `SELECT DISTINCT instrument_token, stock_name 
               FROM instrument_configs 
-              ORDER BY symbol`
+              ORDER BY stock_name`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, err
@@ -52,7 +51,7 @@ func (r *PostgresRepo) GetInstruments(ctx context.Context, date time.Time) ([]mo
 	var list []models.Instrument
 	for rows.Next() {
 		var i models.Instrument
-		if err := rows.Scan(&i.Token, &i.Symbol); err != nil {
+		if err := rows.Scan(&i.Token, &i.StockName); err != nil {
 			return nil, err
 		}
 		list = append(list, i)
@@ -60,23 +59,18 @@ func (r *PostgresRepo) GetInstruments(ctx context.Context, date time.Time) ([]mo
 	return list, nil
 }
 
-func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.Time, interval string) ([]models.Bar, error) {
+func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.Time, timeframe string) ([]models.Bar, error) {
 
-	// Map UI interval (1m, 5m) to DB format (1m0s, 5m0s)
-	dbInterval := interval
-	if interval != "" && !strings.HasSuffix(interval, "0s") {
-		dbInterval = interval + "0s"
-	}
-
+	// No more manual string manipulation needed if the DB stores '1m' or '5m' directly
 	query := `
        SELECT 
           timestamp, open, high, low, close, volume,
-          cvd,cvd_divergence,structural_dominance, effort_score,result_score,
-          pulse_score,peak_trade_sign, total_buy_qty, total_sell_qty, 
-          total_executed_buy_volume,total_executed_sell_volume,vwap, poc, vah, val
+          vwap, poc, vah, val, buy_volume, sell_volume,
+          total_vol_energy, buy_vol_energy, sell_vol_energy,
+          total_rng_energy, buy_rng_energy, sell_rng_energy
        FROM gidh_bars 
        WHERE instrument_token = $1 
-         AND interval = $3
+         AND timeframe = $3
          AND timestamp::date = (
              SELECT MAX(timestamp::date) 
              FROM gidh_bars 
@@ -84,7 +78,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
          )
        ORDER BY timestamp ASC`
 
-	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"), dbInterval)
+	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"), timeframe)
 	if err != nil {
 		return nil, err
 	}
@@ -93,8 +87,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	var bars []models.Bar
 	for rows.Next() {
 		var b models.Bar
-		b.IsClosed = true
-		// Updated Scan to include support_levels and resistance_levels
+
 		err := rows.Scan(
 			&b.Timestamp,
 			&b.Open,
@@ -102,21 +95,18 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.Low,
 			&b.Close,
 			&b.Volume,
-			&b.CVD,
-			&b.CVDDivergence,
-			&b.StructuralDominance,
-			&b.EffortScore,
-			&b.ResultScore,
-			&b.PulseScore,
-			&b.PeakTradeSign,
-			&b.TotalBuyQty,
-			&b.TotalSellQty,
-			&b.TotalExecutedBuyVolume,
-			&b.TotalExecutedSellVolume,
 			&b.VWAP,
 			&b.POC,
 			&b.VAH,
 			&b.VAL,
+			&b.BuyVolume,      // Added
+			&b.SellVolume,     // Added
+			&b.TotalVolEnergy, // New Energy Metric
+			&b.BuyVolEnergy,   // New Energy Metric
+			&b.SellVolEnergy,  // New Energy Metric
+			&b.TotalRngEnergy, // New Energy Metric
+			&b.BuyRngEnergy,   // New Energy Metric
+			&b.SellRngEnergy,  // New Energy Metric
 		)
 		if err != nil {
 			logger.Errorf("failed to scan bar: %v", err)
@@ -129,42 +119,6 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	return bars, nil
 }
 
-func (r *PostgresRepo) GetAnomalies(ctx context.Context, token uint32, date time.Time, interval string) ([]models.AnomalyEvent, error) {
-	query := `
-        SELECT 
-            period_start, instrument_token, interval, symbol, anomaly_type, 
-            time_key, last_updated_at, direction, effort_score, 
-            result_score, pulse_score, intensity, price_value
-        FROM gidh_anomalies 
-        WHERE instrument_token = $1 
-          AND period_start::date = $2::date
-          AND interval = $3
-        ORDER BY period_start ASC`
-
-	rows, err := r.db.QueryContext(ctx, query, token, date.Format("2006-01-02"), interval)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var anomalies []models.AnomalyEvent
-	for rows.Next() {
-		var a models.AnomalyEvent
-		err := rows.Scan(
-			&a.PeriodStart, &a.InstrumentToken, &a.Interval, &a.Symbol, &a.Type,
-			&a.TimeKey, &a.LastUpdatedAt, &a.Direction, &a.EffortScore,
-			&a.ResultScore, &a.PulseScore, &a.Intensity, &a.PriceValue,
-		)
-		if err != nil {
-			logger.Errorf("Error scanning anomaly row: %v", err)
-			continue
-		}
-		anomalies = append(anomalies, a)
-	}
-
-	return anomalies, nil
-}
-
 func (r *PostgresRepo) GetMarketDNA(ctx context.Context, token uint32, date time.Time) (*models.MarketDNA, error) {
 	var dna models.MarketDNA
 	var hvnsJSON, lvnsJSON, bucketsJSON []byte
@@ -175,7 +129,7 @@ func (r *PostgresRepo) GetMarketDNA(ctx context.Context, token uint32, date time
               WHERE instrument_token = $1 AND trading_date = $2::date`
 
 	err := r.db.QueryRowContext(ctx, query, token, date.Format("2006-01-02")).Scan(
-		&dna.InstrumentToken, &dna.Symbol, &dna.TradingDate, &dna.POC, &dna.VAH, &dna.VAL, &hvnsJSON, &lvnsJSON, &bucketsJSON,
+		&dna.InstrumentToken, &dna.StockName, &dna.TradingDate, &dna.POC, &dna.VAH, &dna.VAL, &hvnsJSON, &lvnsJSON, &bucketsJSON,
 	)
 	if err != nil {
 		return nil, err
