@@ -38,11 +38,31 @@ func (h *BacktestHandler) HandleProxy(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
+func (h *BacktestHandler) GetAvailableDates(w http.ResponseWriter, r *http.Request) {
+	dates, err := h.service.GetAvailableDates(r.Context())
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Note: UI expects { "dates": [...] }
+	h.sendResponse(w, http.StatusOK, "success", map[string]interface{}{"dates": dates}, "")
+}
+
 func (h *BacktestHandler) sendError(w http.ResponseWriter, code int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(models.JSONResponse{
 		Status:  "error",
+		Message: msg,
+	})
+}
+
+func (h *BacktestHandler) sendResponse(w http.ResponseWriter, code int, status string, data interface{}, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(models.JSONResponse{
+		Status:  status,
+		Data:    data,
 		Message: msg,
 	})
 }

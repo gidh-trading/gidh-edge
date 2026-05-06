@@ -29,6 +29,7 @@ func NewRouter(
 	}))
 
 	r.Route("/api", func(r chi.Router) {
+		r.Get("/available-dates", backtestH.GetAvailableDates)
 		r.Get("/instruments", edgeH.GetAvailableInstruments)
 		r.Get("/instruments/all", edgeH.GetAllInstruments)
 		r.Get("/snapshot/{token}/{date}", snapH.GetSnapshot)

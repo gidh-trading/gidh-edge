@@ -27,7 +27,7 @@ func main() {
 	// Initialize lean services
 	edgeSvc := service.NewEdgeService(repoInstance, engineClient)
 	snapSvc := service.NewSnapshotService(repoInstance, engineClient)
-	backtestSvc := service.NewBacktestService(engineClient)
+	backtestSvc := service.NewBacktestService(engineClient, repoInstance, cfg.App.BacktestBackupDir)
 
 	// Initialize handlers
 	edgeH := handler.NewEdgeHandler(edgeSvc)

@@ -64,7 +64,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	// No more manual string manipulation needed if the DB stores '1m' or '5m' directly
 	query := `
        SELECT 
-          timestamp, open, high, low, close, volume,
+          timestamp, instrument_token, stock_name,timeframe, open, high, low, close, volume,
           vwap, poc, vah, val, buy_volume, sell_volume,
           total_vol_energy, buy_vol_energy, sell_vol_energy,
           total_rng_energy, buy_rng_energy, sell_rng_energy
@@ -90,6 +90,9 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 
 		err := rows.Scan(
 			&b.Timestamp,
+			&b.InstrumentToken,
+			&b.StockName,
+			&b.Timeframe,
 			&b.Open,
 			&b.High,
 			&b.Low,
@@ -185,4 +188,23 @@ func (r *PostgresRepo) GetVolumeProfiles(ctx context.Context, token uint32, date
 	}
 
 	return profiles, nil
+}
+
+func (r *PostgresRepo) GetDNADates(ctx context.Context) (map[string]bool, error) {
+	query := `SELECT DISTINCT trading_date FROM gidh_market_dna`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	dates := make(map[string]bool)
+	for rows.Next() {
+		var t time.Time
+		if err := rows.Scan(&t); err != nil {
+			return nil, err
+		}
+		dates[t.Format("2006-01-02")] = true
+	}
+	return dates, nil
 }

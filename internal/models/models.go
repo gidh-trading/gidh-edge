@@ -27,13 +27,13 @@ type Bar struct {
 	Volume float64 `json:"volume"`
 
 	// ---- Optional Auction Metrics ----
-	VWAP float64 `json:"vwap,omitempty"`
-	POC  float64 `json:"poc,omitempty"`
-	VAH  float64 `json:"vah,omitempty"`
-	VAL  float64 `json:"val,omitempty"`
+	VWAP float64 `json:"vwap"`
+	POC  float64 `json:"poc"`
+	VAH  float64 `json:"vah"`
+	VAL  float64 `json:"val"`
 
-	BuyVolume  float64 `json:"-"`
-	SellVolume float64 `json:"-"`
+	BuyVolume  float64 `json:"buy_volume"`
+	SellVolume float64 `json:"sell_volume"`
 
 	// Volume Energy
 	TotalVolEnergy float64 `json:"total_vol_energy"`

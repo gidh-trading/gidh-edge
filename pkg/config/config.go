@@ -22,8 +22,9 @@ type DBConfig struct {
 }
 
 type AppConfig struct {
-	LogLevel string
-	Mode     string
+	LogLevel          string
+	Mode              string
+	BacktestBackupDir string
 }
 
 func Load() *Config {
@@ -55,8 +56,9 @@ func Load() *Config {
 			ConnString: dbURL,
 		},
 		App: AppConfig{
-			LogLevel: getEnv("LOG_LEVEL", "info"),
-			Mode:     mode,
+			LogLevel:          getEnv("LOG_LEVEL", "info"),
+			Mode:              mode,
+			BacktestBackupDir: getEnv("BACKTEST_BACKUP_DIR", ""),
 		},
 	}
 }
