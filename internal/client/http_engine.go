@@ -4,11 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"gidh-edge/internal/models"
 	"io"
 	"net/http"
-	"time"
-
-	"gidh-edge/internal/models"
 )
 
 type EngineState struct {
@@ -22,7 +20,7 @@ type HTTPEngineClient struct {
 }
 
 func NewHTTPEngineClient(url string) *HTTPEngineClient {
-	return &HTTPEngineClient{baseURL: url, client: &http.Client{Timeout: 5 * time.Second}}
+	return &HTTPEngineClient{baseURL: url, client: &http.Client{Timeout: 0}}
 }
 
 func (c *HTTPEngineClient) GetActiveState(ctx context.Context, token uint32, interval string) (EngineState, error) {
