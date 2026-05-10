@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"gidh-edge/internal/models"
 	"gidh-edge/internal/service"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -86,4 +87,25 @@ func (h *EdgeHandler) sendResponse(w http.ResponseWriter, code int, status strin
 
 func (h *EdgeHandler) sendError(w http.ResponseWriter, code int, msg string) {
 	h.sendResponse(w, code, "error", nil, msg)
+}
+
+func (h *EdgeHandler) HandleProxy(w http.ResponseWriter, r *http.Request) {
+	uri := r.URL.RequestURI()
+
+	resp, err := h.service.ProxyRequest(r.Context(), r.Method, uri, r.Body, r.Header)
+	if err != nil {
+		h.sendError(w, http.StatusBadGateway, "Backend engine is currently unavailable")
+		return
+	}
+	defer resp.Body.Close()
+
+	// Copy response headers from backend to client
+	for k, vv := range resp.Header {
+		for _, v := range vv {
+			w.Header().Add(k, v)
+		}
+	}
+
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
 }

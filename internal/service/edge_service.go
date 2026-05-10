@@ -6,6 +6,8 @@ import (
 	"gidh-edge/internal/models"
 	"gidh-edge/internal/repo"
 	"gidh-edge/pkg/logger"
+	"io"
+	"net/http"
 	"time"
 )
 
@@ -45,4 +47,8 @@ func (s *EdgeService) GetEngineStatus(ctx context.Context) string {
 
 func (s *EdgeService) GetAllInstruments(ctx context.Context, date time.Time) ([]models.Instrument, error) {
 	return s.repo.GetInstruments(ctx, date)
+}
+
+func (s *EdgeService) ProxyRequest(ctx context.Context, method, uri string, body io.Reader, headers http.Header) (*http.Response, error) {
+	return s.engine.ForwardRawRequest(ctx, method, uri, body, headers)
 }

@@ -34,6 +34,7 @@ func NewRouter(
 		r.Get("/instruments/all", edgeH.GetAllInstruments)
 		r.Get("/snapshot/{token}/{date}", snapH.GetSnapshot)
 		r.Get("/market-dna/{token}/{date}", edgeH.GetMarketDNA)
+		r.Get("/playable-stocks", edgeH.HandleProxy)
 
 		// --- Backtest Proxy Routes ---
 		r.With(TimeoutMiddleware(3*time.Minute)).Post("/backtest/start", backtestH.HandleProxy)
