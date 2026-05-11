@@ -14,6 +14,11 @@ build:
 	go build -o $(BINARY) $(MAIN_GO)
 	@echo "Build completed: $(BINARY)"
 
+# Prepare backtest data by untarring available archives
+prepare-data:
+	@echo "Running data preparation script..."
+	go run cmd/utils/prepare_data.go
+
 # Build and run PM2 in LIVE mode
 live: build
 	@echo "Starting PM2 in LIVE mode..."

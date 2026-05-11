@@ -25,6 +25,7 @@ type AppConfig struct {
 	LogLevel          string
 	Mode              string
 	BacktestBackupDir string
+	BacktestDataDir   string
 }
 
 func Load() *Config {
@@ -59,6 +60,7 @@ func Load() *Config {
 			LogLevel:          getEnv("LOG_LEVEL", "info"),
 			Mode:              mode,
 			BacktestBackupDir: getEnv("BACKTEST_BACKUP_DIR", ""),
+			BacktestDataDir:   getEnv("BACKTEST_DATA_DIR", ""),
 		},
 	}
 }
