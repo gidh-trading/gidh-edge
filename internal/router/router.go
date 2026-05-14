@@ -15,6 +15,7 @@ func NewRouter(
 	edgeH *handler.EdgeHandler,
 	snapH *handler.SnapshotHandler,
 	backtestH *handler.BacktestHandler,
+	orderH *handler.OrderHandler,
 ) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger, middleware.Recoverer)
@@ -41,6 +42,8 @@ func NewRouter(
 		r.Get("/backtest/stop", backtestH.HandleProxy)
 		r.Get("/backtest/available-dates", backtestH.HandleProxy)
 		r.Get("/backtest/status", backtestH.HandleProxy)
+
+		r.Post("/orders/place", orderH.HandleOrderPlace)
 	})
 	return r
 }

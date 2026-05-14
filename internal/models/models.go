@@ -122,3 +122,21 @@ type JSONResponse struct {
 	Data    interface{} `json:"data,omitempty"`
 	Message string      `json:"message,omitempty"`
 }
+
+// internal/models/models.go
+
+type OrderRequest struct {
+	Symbol          string  `json:"symbol"`
+	Product         string  `json:"product"`
+	TransactionType string  `json:"transaction_type"`
+	OrderType       string  `json:"order_type"`
+	Quantity        int     `json:"quantity"`
+	Price           float64 `json:"price,omitempty"`
+	TargetPrice     float64 `json:"target_price,omitempty"`
+	StopLossPrice   float64 `json:"stop_loss_price,omitempty"`
+}
+
+type OrderResponse struct {
+	OrderID string `json:"order_id"`
+	Status  string `json:"status"`
+}
