@@ -1,29 +1,40 @@
-// internal/service/order_service.go
-
 package service
 
 import (
 	"context"
 	"gidh-edge/internal/client"
+	"gidh-edge/internal/models"
+	"gidh-edge/internal/repo"
 	"io"
 	"net/http"
+	"time"
 )
 
 type OrderService struct {
 	engine *client.HTTPEngineClient
+	repo   *repo.OrderRepository // Injected clean repository layer
 }
 
-func NewOrderService(e *client.HTTPEngineClient) *OrderService {
-	return &OrderService{engine: e}
+func NewOrderService(e *client.HTTPEngineClient, repo *repo.OrderRepository) *OrderService {
+	return &OrderService{engine: e, repo: repo}
 }
 
-// ProxyOrder forwards the raw request directly to the backend engine
+// GetHistoricalOrders proxies the call down to the repository layer
+func (s *OrderService) GetHistoricalOrders(ctx context.Context, tradingDate time.Time) ([]models.OrderBookEntry, error) {
+	return s.repo.GetHistoricalOrders(ctx, tradingDate)
+}
+
+// GetHistoricalPositions proxies the call down to the repository layer
+func (s *OrderService) GetHistoricalPositions(ctx context.Context, tradingDate time.Time) ([]models.Position, error) {
+	return s.repo.GetHistoricalPositions(ctx, tradingDate)
+}
+
+// --- Proxy Order System calls remain completely unchanged below ---
+
 func (s *OrderService) ProxyOrder(ctx context.Context, method string, body io.Reader, headers http.Header) (*http.Response, error) {
-	// The URI should match the endpoint expected by your backend engine
 	return s.engine.ForwardRawRequest(ctx, method, "/api/orders/place", body, headers)
 }
 
-// ProxyPositions forwards the request to fetch open positions from the backend engine
 func (s *OrderService) ProxyPositions(ctx context.Context, method string, body io.Reader, headers http.Header) (*http.Response, error) {
 	return s.engine.ForwardRawRequest(ctx, method, "/api/positions", body, headers)
 }

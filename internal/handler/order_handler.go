@@ -9,6 +9,9 @@ import (
 	"gidh-edge/internal/service"
 	"io"
 	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type OrderHandler struct {
@@ -45,6 +48,50 @@ func (h *OrderHandler) HandlePositionMetadata(w http.ResponseWriter, r *http.Req
 
 func (h *OrderHandler) HandlePositionExit(w http.ResponseWriter, r *http.Request) {
 	h.proxyRequest(w, r, h.service.ProxyPositionExit)
+}
+
+// HandleGetHistoricalOrders processes GET /api/orders/{date}
+func (h *OrderHandler) HandleGetHistoricalOrders(w http.ResponseWriter, r *http.Request) {
+	dateParam := chi.URLParam(r, "date")
+	parsedDate, err := time.Parse("2006-01-02", dateParam)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD")
+		return
+	}
+
+	orders, err := h.service.GetHistoricalOrders(r.Context(), parsedDate)
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, "Failed to fetch historical orders")
+		return
+	}
+
+	if orders == nil {
+		orders = []models.OrderBookEntry{} // Return empty array [] to keep frontend happy
+	}
+
+	h.sendResponse(w, http.StatusOK, "success", orders, "Historical orders retrieved successfully")
+}
+
+// HandleGetHistoricalPositions processes GET /api/positions/history/{date}
+func (h *OrderHandler) HandleGetHistoricalPositions(w http.ResponseWriter, r *http.Request) {
+	dateParam := chi.URLParam(r, "date")
+	parsedDate, err := time.Parse("2006-01-02", dateParam)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD")
+		return
+	}
+
+	positions, err := h.service.GetHistoricalPositions(r.Context(), parsedDate)
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, "Failed to fetch historical positions")
+		return
+	}
+
+	if positions == nil {
+		positions = []models.Position{}
+	}
+
+	h.sendResponse(w, http.StatusOK, "success", positions, "Historical positions retrieved successfully")
 }
 
 // --- Private Proxy Helper ---
