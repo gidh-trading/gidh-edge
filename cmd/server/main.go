@@ -22,13 +22,14 @@ func main() {
 	defer db.Close()
 
 	repoInstance := repo.NewPostgresRepo(db)
+	orderRepoInstance := repo.NewOrderRepository(db)
 	engineClient := client.NewHTTPEngineClient(cfg.API.EngineURL)
 
 	// Initialize lean services
 	edgeSvc := service.NewEdgeService(repoInstance, engineClient)
 	snapSvc := service.NewSnapshotService(repoInstance, engineClient)
 	backtestSvc := service.NewBacktestService(engineClient, repoInstance, cfg.App.BacktestBackupDir)
-	orderSvc := service.NewOrderService(engineClient)
+	orderSvc := service.NewOrderService(engineClient, orderRepoInstance)
 
 	// Initialize handlers
 	edgeH := handler.NewEdgeHandler(edgeSvc)

@@ -110,13 +110,6 @@ func (h *OrderHandler) proxyRequest(
 	}
 	defer resp.Body.Close()
 
-	// Copy all response headers from backend to client
-	for k, vv := range resp.Header {
-		for _, v := range vv {
-			w.Header().Add(k, v)
-		}
-	}
-
 	// Forward the status code and stream the body back to the user
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)

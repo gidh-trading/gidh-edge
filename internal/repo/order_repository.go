@@ -20,14 +20,17 @@ func NewOrderRepository(db *sql.DB) *OrderRepository {
 func (r *OrderRepository) GetHistoricalOrders(ctx context.Context, tradingDate time.Time) ([]models.OrderBookEntry, error) {
 	query := `
 		SELECT order_id, symbol, product, side, order_type, quantity, 
-		       filled_qty, price, status, timestamp, target_price, sl_price
+		       filled_qty, price, status, timestamp, target_price, 
+		       sl_price, user_email
 		FROM gidh_orders
 		WHERE trading_date = $1::date;`
 
 	rows, err := r.db.QueryContext(ctx, query, tradingDate)
+
 	if err != nil {
 		return nil, err
 	}
+
 	defer rows.Close()
 
 	var orders []models.OrderBookEntry
@@ -35,7 +38,8 @@ func (r *OrderRepository) GetHistoricalOrders(ctx context.Context, tradingDate t
 		var o models.OrderBookEntry
 		err := rows.Scan(
 			&o.OrderID, &o.Symbol, &o.Product, &o.Side, &o.OrderType, &o.Qty,
-			&o.FilledQty, &o.Price, &o.Status, &o.Timestamp, &o.TargetPrice, &o.StopLossPrice,
+			&o.FilledQty, &o.Price, &o.Status, &o.Timestamp, &o.TargetPrice,
+			&o.StopLossPrice, &o.UserEmail,
 		)
 		if err != nil {
 			return nil, err
@@ -53,7 +57,7 @@ func (r *OrderRepository) GetHistoricalOrders(ctx context.Context, tradingDate t
 // GetHistoricalPositions fetches position snapshots matching a specific trading date from the database
 func (r *OrderRepository) GetHistoricalPositions(ctx context.Context, tradingDate time.Time) ([]models.Position, error) {
 	query := `
-		SELECT trading_date, symbol, product, side, net_quantity, avg_price, realized_pnl
+		SELECT trading_date, symbol, product, side, net_quantity, avg_price, realized_pnl, target_price, stop_loss_price
 		FROM gidh_positions
 		WHERE trading_date = $1::date;`
 
@@ -67,7 +71,8 @@ func (r *OrderRepository) GetHistoricalPositions(ctx context.Context, tradingDat
 	for rows.Next() {
 		var p models.Position
 		err := rows.Scan(
-			&p.TradingDate, &p.Symbol, &p.Product, &p.Side, &p.NetQuantity, &p.AveragePrice, &p.RealizedPnL,
+			&p.TradingDate, &p.Symbol, &p.Product, &p.Side, &p.NetQuantity,
+			&p.AveragePrice, &p.RealizedPnL, &p.TargetPrice, &p.StopLossPrice, // Scan values here
 		)
 		if err != nil {
 			return nil, err
