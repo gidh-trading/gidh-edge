@@ -43,7 +43,15 @@ func NewRouter(
 		r.Get("/backtest/available-dates", backtestH.HandleProxy)
 		r.Get("/backtest/status", backtestH.HandleProxy)
 
+		// --- Order Management ---
 		r.Post("/orders/place", orderH.HandleOrderPlace)
+		r.Post("/orders/modify", orderH.HandleOrderModify)
+		r.Post("/orders/cancel", orderH.HandleOrderCancel)
+
+		// --- Position Management ---
+		r.Get("/positions", orderH.HandleGetPositions) // From previous step
+		r.Post("/positions/metadata", orderH.HandlePositionMetadata)
+		r.Post("/positions/exit", orderH.HandlePositionExit)
 	})
 	return r
 }
