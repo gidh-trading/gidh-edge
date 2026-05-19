@@ -65,9 +65,7 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	query := `
        SELECT 
           timestamp, instrument_token, stock_name,timeframe, open, high, low, close, volume,
-          vwap, poc, vah, val, buy_volume, sell_volume,
-          total_vol_energy, buy_vol_energy, sell_vol_energy,
-          total_rng_energy, buy_rng_energy, sell_rng_energy
+          vwap, poc, vah, val
        FROM gidh_bars 
        WHERE instrument_token = $1 
          AND timeframe = $3
@@ -102,14 +100,6 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.POC,
 			&b.VAH,
 			&b.VAL,
-			&b.BuyVolume,      // Added
-			&b.SellVolume,     // Added
-			&b.TotalVolEnergy, // New Energy Metric
-			&b.BuyVolEnergy,   // New Energy Metric
-			&b.SellVolEnergy,  // New Energy Metric
-			&b.TotalRngEnergy, // New Energy Metric
-			&b.BuyRngEnergy,   // New Energy Metric
-			&b.SellRngEnergy,  // New Energy Metric
 		)
 		if err != nil {
 			logger.Errorf("failed to scan bar: %v", err)

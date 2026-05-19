@@ -11,6 +11,13 @@ type Instrument struct {
 	StockName string `json:"stock_name"`
 }
 
+type UIHeatmapCell struct {
+	P float64 `json:"p"` // Price Bin (Bucket)
+	V float64 `json:"v"` // Total Volume in this bucket
+	D float64 `json:"d"` // Trade Delta (Aggressive Buy - Aggressive Sell)
+	I float64 `json:"i"` // Intensity (Count of anomaly ticks in this bucket)
+}
+
 type Bar struct {
 	Timestamp       time.Time `json:"timestamp"`
 	InstrumentToken int32     `json:"instrument_token"`
@@ -32,18 +39,7 @@ type Bar struct {
 	VAH  float64 `json:"vah"`
 	VAL  float64 `json:"val"`
 
-	BuyVolume  float64 `json:"buy_volume"`
-	SellVolume float64 `json:"sell_volume"`
-
-	// Volume Energy
-	TotalVolEnergy float64 `json:"total_vol_energy"`
-	BuyVolEnergy   float64 `json:"buy_vol_energy"`
-	SellVolEnergy  float64 `json:"sell_vol_energy"`
-
-	// Range Energy
-	TotalRngEnergy float64 `json:"total_rng_energy"`
-	BuyRngEnergy   float64 `json:"buy_rng_energy"`
-	SellRngEnergy  float64 `json:"sell_rng_energy"`
+	Heatmap []UIHeatmapCell `json:"heatmap"`
 }
 
 type VPNode struct {
