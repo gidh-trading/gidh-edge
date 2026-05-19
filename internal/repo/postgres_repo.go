@@ -61,11 +61,11 @@ func (r *PostgresRepo) GetInstruments(ctx context.Context, date time.Time) ([]mo
 
 func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.Time, timeframe string) ([]models.Bar, error) {
 
-	// No more manual string manipulation needed if the DB stores '1m' or '5m' directly
+	// 1. Add 'heatmap' to the SELECT clause
 	query := `
        SELECT 
-          timestamp, instrument_token, stock_name,timeframe, open, high, low, close, volume,
-          vwap, poc, vah, val
+          timestamp, instrument_token, stock_name, timeframe, open, high, low, close, volume,
+          tick_count, max_tick_count_z, vwap, poc, vah, val, heatmap
        FROM gidh_bars 
        WHERE instrument_token = $1 
          AND timeframe = $3
@@ -85,7 +85,9 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	var bars []models.Bar
 	for rows.Next() {
 		var b models.Bar
+		var heatmapJSON []byte // 2. Create a byte slice to hold the raw JSON from Postgres
 
+		// 3. Scan the heatmapJSON alongside the other fields
 		err := rows.Scan(
 			&b.Timestamp,
 			&b.InstrumentToken,
@@ -96,14 +98,25 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.Low,
 			&b.Close,
 			&b.Volume,
+			&b.TickCount,
+			&b.MaxTickCountZ,
 			&b.VWAP,
 			&b.POC,
 			&b.VAH,
 			&b.VAL,
+			&heatmapJSON,
 		)
 		if err != nil {
 			logger.Errorf("failed to scan bar: %v", err)
 			return nil, err
+		}
+
+		// 4. Unmarshal the raw JSON bytes into the Heatmap struct slice
+		if len(heatmapJSON) > 0 {
+			if err := json.Unmarshal(heatmapJSON, &b.Heatmap); err != nil {
+				logger.Errorf("failed to unmarshal heatmap for token %d: %v", token, err)
+				// You can choose to return the error or just skip this specific heatmap
+			}
 		}
 
 		bars = append(bars, b)
