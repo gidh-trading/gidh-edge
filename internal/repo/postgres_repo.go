@@ -61,11 +61,12 @@ func (r *PostgresRepo) GetInstruments(ctx context.Context, date time.Time) ([]mo
 
 func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.Time, timeframe string) ([]models.Bar, error) {
 
-	// 1. Add 'heatmap' to the SELECT clause
+	// 1. Added 'bio_events' to the SELECT clause
 	query := `
        SELECT 
           timestamp, instrument_token, stock_name, timeframe, open, high, low, close, volume,
-          tick_count, max_tick_count_z, vwap, poc, vah, val, heatmap
+          tick_count, max_tick_count_z, vwap, poc, vah, val, 
+          total_buy_qty, total_sell_qty,change_pct, dominant_anomaly, slopes
        FROM gidh_bars 
        WHERE instrument_token = $1 
          AND timeframe = $3
@@ -85,9 +86,10 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	var bars []models.Bar
 	for rows.Next() {
 		var b models.Bar
-		var heatmapJSON []byte // 2. Create a byte slice to hold the raw JSON from Postgres
+		var daJSON []byte
+		var slopesJSON []byte
 
-		// 3. Scan the heatmapJSON alongside the other fields
+		// 3. Scan the bioEventsJSON field at the end of the array row mapping
 		err := rows.Scan(
 			&b.Timestamp,
 			&b.InstrumentToken,
@@ -104,18 +106,27 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.POC,
 			&b.VAH,
 			&b.VAL,
-			&heatmapJSON,
+			&b.TotalBuyQty,
+			&b.TotalSellQty,
+			&b.ChangePct,
+			&daJSON,
+			&slopesJSON,
 		)
 		if err != nil {
 			logger.Errorf("failed to scan bar: %v", err)
 			return nil, err
 		}
 
-		// 4. Unmarshal the raw JSON bytes into the Heatmap struct slice
-		if len(heatmapJSON) > 0 {
-			if err := json.Unmarshal(heatmapJSON, &b.Heatmap); err != nil {
+		if len(daJSON) > 0 {
+			if err := json.Unmarshal(daJSON, &b.DominantAnomaly); err != nil {
 				logger.Errorf("failed to unmarshal heatmap for token %d: %v", token, err)
-				// You can choose to return the error or just skip this specific heatmap
+			}
+		}
+
+		// 5. Unmarshal Slopes
+		if len(slopesJSON) > 0 {
+			if err := json.Unmarshal(slopesJSON, &b.Slopes); err != nil {
+				logger.Errorf("failed to unmarshal slopes for token %d: %v", token, err)
 			}
 		}
 

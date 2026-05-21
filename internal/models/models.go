@@ -11,11 +11,20 @@ type Instrument struct {
 	StockName string `json:"stock_name"`
 }
 
-type UIHeatmapCell struct {
-	P float64 `json:"p"` // Price Bin (Bucket)
-	V float64 `json:"v"` // Total Volume in this bucket
-	D float64 `json:"d"` // Trade Delta (Aggressive Buy - Aggressive Sell)
-	I float64 `json:"i"` // Intensity (Count of anomaly ticks in this bucket)
+type UIDominantAnomaly struct {
+	IsPresent bool    `json:"is_present"`
+	Type      string  `json:"type"` // "WHALE" or "ICEBERG"
+	P         float64 `json:"p"`    // Price Bin level mapping
+	V         float64 `json:"v"`    // Total Volume accumulated inside bucket
+	D         float64 `json:"d"`    // Aggressive Volume net delta flow
+	I         float64 `json:"i"`    // Volume weighted intensity footprint mapping
+}
+
+type TrendSlopes struct {
+	Price          float64 `json:"price_slope"`
+	VWAP           float64 `json:"vwap_slope"`
+	Volume         float64 `json:"volume_slope"`
+	PriceIntensity float64 `json:"price_intensity"`
 }
 
 type Bar struct {
@@ -38,12 +47,16 @@ type Bar struct {
 	MaxTickCountZ float64 `json:"max_tick_count_z"`
 
 	// ---- Optional Auction Metrics ----
-	VWAP float64 `json:"vwap"`
-	POC  float64 `json:"poc"`
-	VAH  float64 `json:"vah"`
-	VAL  float64 `json:"val"`
+	VWAP         float64 `json:"vwap"`
+	POC          float64 `json:"poc"`
+	VAH          float64 `json:"vah"`
+	VAL          float64 `json:"val"`
+	TotalBuyQty  float64 `json:"total_buy_qty"`
+	TotalSellQty float64 `json:"total_sell_qty"`
+	ChangePct    float64 `json:"change_pct"`
 
-	Heatmap []UIHeatmapCell `json:"heatmap"`
+	DominantAnomaly UIDominantAnomaly `json:"dominant_anomaly"`
+	Slopes          TrendSlopes       `json:"slopes"`
 }
 
 type VPNode struct {
