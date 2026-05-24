@@ -24,8 +24,8 @@ func (s *EdgeService) GetInstruments(ctx context.Context, date time.Time) ([]mod
 	return s.repo.GetAvailable(ctx, date)
 }
 
-func (s *EdgeService) GetHistoryBars(ctx context.Context, token uint32, date time.Time, interval string) ([]models.Bar, error) {
-	return s.repo.GetHistory(ctx, token, date, interval)
+func (s *EdgeService) GetBarsHistoryBars(ctx context.Context, token uint32, date time.Time, interval string) ([]models.Bar, error) {
+	return s.repo.GetBarsHistory(ctx, token, date, interval)
 }
 
 func (s *EdgeService) GetMarketDNA(ctx context.Context, token uint32, date time.Time) (*models.MarketDNA, error) {

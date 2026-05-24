@@ -20,7 +20,7 @@ func NewSnapshotService(r repo.MarketDataRepo, e *client.HTTPEngineClient) *Snap
 
 func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, date time.Time, interval string) (models.Snapshot, error) {
 	// 1. Fetch historical data from the repository
-	history, _ := s.repo.GetHistory(ctx, token, date, interval)
+	history, _ := s.repo.GetBarsHistory(ctx, token, date, interval)
 
 	dna, err := s.repo.GetMarketDNA(ctx, token, date)
 	if err != nil {

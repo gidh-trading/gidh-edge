@@ -59,14 +59,14 @@ func (r *PostgresRepo) GetInstruments(ctx context.Context, date time.Time) ([]mo
 	return list, nil
 }
 
-func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.Time, timeframe string) ([]models.Bar, error) {
-
-	// 1. Added 'bio_events' to the SELECT clause
+func (r *PostgresRepo) GetBarsHistory(ctx context.Context, token uint32, date time.Time, timeframe string) ([]models.Bar, error) {
+	// 1. Updated SELECT query to map to the new peaks and significant_events JSONB columns
 	query := `
        SELECT 
-          timestamp, instrument_token, stock_name, timeframe, open, high, low, close, volume,
-          tick_count, max_tick_count_z, vwap, poc, vah, val, 
-          total_buy_qty, total_sell_qty,change_pct, dominant_anomaly, slopes
+          timestamp, instrument_token, stock_name, timeframe, 
+          open, high, low, close, volume, tick_count, vwap,
+          poc, vah, val, total_buy_qty, total_sell_qty, change_pct,
+          peaks, significant_events
        FROM gidh_bars 
        WHERE instrument_token = $1 
          AND timeframe = $3
@@ -86,10 +86,10 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 	var bars []models.Bar
 	for rows.Next() {
 		var b models.Bar
-		var daJSON []byte
-		var slopesJSON []byte
+		var peaksJSON []byte
+		var eventsJSON []byte
 
-		// 3. Scan the bioEventsJSON field at the end of the array row mapping
+		// 2. Scan raw database fields including our target json byte strings
 		err := rows.Scan(
 			&b.Timestamp,
 			&b.InstrumentToken,
@@ -101,7 +101,6 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.Close,
 			&b.Volume,
 			&b.TickCount,
-			&b.MaxTickCountZ,
 			&b.VWAP,
 			&b.POC,
 			&b.VAH,
@@ -109,24 +108,25 @@ func (r *PostgresRepo) GetHistory(ctx context.Context, token uint32, date time.T
 			&b.TotalBuyQty,
 			&b.TotalSellQty,
 			&b.ChangePct,
-			&daJSON,
-			&slopesJSON,
+			&peaksJSON,  // Intercepted raw string row segment for Peaks
+			&eventsJSON, // Intercepted raw string row segment for Events
 		)
 		if err != nil {
 			logger.Errorf("failed to scan bar: %v", err)
 			return nil, err
 		}
 
-		if len(daJSON) > 0 {
-			if err := json.Unmarshal(daJSON, &b.DominantAnomaly); err != nil {
-				logger.Errorf("failed to unmarshal heatmap for token %d: %v", token, err)
+		// 3. Unmarshal Peaks JSONB string directly back into our type-safe Go struct
+		if len(peaksJSON) > 0 {
+			if err := json.Unmarshal(peaksJSON, &b.Peaks); err != nil {
+				logger.Errorf("failed to unmarshal peaks configuration for token %d: %v", token, err)
 			}
 		}
 
-		// 5. Unmarshal Slopes
-		if len(slopesJSON) > 0 {
-			if err := json.Unmarshal(slopesJSON, &b.Slopes); err != nil {
-				logger.Errorf("failed to unmarshal slopes for token %d: %v", token, err)
+		// 4. Unmarshal Significant Events log array back into our struct slice
+		if len(eventsJSON) > 0 {
+			if err := json.Unmarshal(eventsJSON, &b.SignificantEvents); err != nil {
+				logger.Errorf("failed to unmarshal significant events for token %d: %v", token, err)
 			}
 		}
 
@@ -141,12 +141,12 @@ func (r *PostgresRepo) GetMarketDNA(ctx context.Context, token uint32, date time
 	var hvnsJSON, lvnsJSON, bucketsJSON []byte
 
 	// Filter by specific date to support backtesting
-	query := `SELECT instrument_token, stock_name, trading_date, poc_5d, vah_5d, val_5d, macro_hvns, macro_lvns, time_buckets 
+	query := `SELECT instrument_token, stock_name, trading_date, poc_5d, vah_5d, val_5d, macro_hvns, macro_lvns 
               FROM gidh_market_dna 
               WHERE instrument_token = $1 AND trading_date = $2::date`
 
 	err := r.db.QueryRowContext(ctx, query, token, date.Format("2006-01-02")).Scan(
-		&dna.InstrumentToken, &dna.StockName, &dna.TradingDate, &dna.POC, &dna.VAH, &dna.VAL, &hvnsJSON, &lvnsJSON, &bucketsJSON,
+		&dna.InstrumentToken, &dna.StockName, &dna.TradingDate, &dna.POC, &dna.VAH, &dna.VAL, &hvnsJSON, &lvnsJSON,
 	)
 	if err != nil {
 		return nil, err
