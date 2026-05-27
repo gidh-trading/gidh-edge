@@ -66,7 +66,7 @@ func (r *PostgresRepo) GetBarsHistory(ctx context.Context, token uint32, date ti
           timestamp, instrument_token, stock_name, timeframe, 
           open, high, low, close, volume, tick_count, vwap,
           poc, vah, val, total_buy_qty, total_sell_qty, change_pct,
-          peaks, significant_events
+          volume_rank, tick_rank, price_rank
        FROM gidh_bars 
        WHERE instrument_token = $1 
          AND timeframe = $3
@@ -86,8 +86,6 @@ func (r *PostgresRepo) GetBarsHistory(ctx context.Context, token uint32, date ti
 	var bars []models.Bar
 	for rows.Next() {
 		var b models.Bar
-		var peaksJSON []byte
-		var eventsJSON []byte
 
 		// 2. Scan raw database fields including our target json byte strings
 		err := rows.Scan(
@@ -108,26 +106,13 @@ func (r *PostgresRepo) GetBarsHistory(ctx context.Context, token uint32, date ti
 			&b.TotalBuyQty,
 			&b.TotalSellQty,
 			&b.ChangePct,
-			&peaksJSON,  // Intercepted raw string row segment for Peaks
-			&eventsJSON, // Intercepted raw string row segment for Events
+			&b.VolumeRank,
+			&b.TickRank,
+			&b.PriceRank,
 		)
 		if err != nil {
 			logger.Errorf("failed to scan bar: %v", err)
 			return nil, err
-		}
-
-		// 3. Unmarshal Peaks JSONB string directly back into our type-safe Go struct
-		if len(peaksJSON) > 0 {
-			if err := json.Unmarshal(peaksJSON, &b.Peaks); err != nil {
-				logger.Errorf("failed to unmarshal peaks configuration for token %d: %v", token, err)
-			}
-		}
-
-		// 4. Unmarshal Significant Events log array back into our struct slice
-		if len(eventsJSON) > 0 {
-			if err := json.Unmarshal(eventsJSON, &b.SignificantEvents); err != nil {
-				logger.Errorf("failed to unmarshal significant events for token %d: %v", token, err)
-			}
 		}
 
 		bars = append(bars, b)

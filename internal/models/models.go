@@ -11,46 +11,6 @@ type Instrument struct {
 	StockName string `json:"stock_name"`
 }
 
-type UIDominantAnomaly struct {
-	IsPresent bool    `json:"is_present"`
-	Type      string  `json:"type"` // "WHALE" or "ICEBERG"
-	P         float64 `json:"p"`    // Price Bin level mapping
-	V         float64 `json:"v"`    // Total Volume accumulated inside bucket
-	D         float64 `json:"d"`    // Aggressive Volume net delta flow
-	I         float64 `json:"i"`    // Volume weighted intensity footprint mapping
-}
-
-type AnomalyType int
-
-type AnomalySnapshot struct {
-	Timestamp  time.Time   `json:"ts"`
-	Type       AnomalyType `json:"type"` //
-	Direction  int         `json:"dir"`  // -1 = Sell, 1 = Buy
-	VolumeRank int         `json:"vol_rank"`
-	PriceRank  int         `json:"price_rank"`
-	Price      float64     `json:"price"`
-}
-
-type AbsorptionLevel struct {
-	Price     float64 `json:"price"`
-	Direction int     `json:"dir"`      // 1 = Support (Buy Absorption), -1 = Resistance (Sell Absorption)
-	Strength  int     `json:"strength"` // Volume rank intensity (6 or 7)
-	IsActive  bool    `json:"is_active"`
-}
-
-// PeakAnomalyMetrics remains a strict Go struct for compiler safety,
-// but serializes out as a flat JSON dictionary object for database/sockets.
-type PeakAnomalyMetrics struct {
-	PeakVolumeRank      int               `json:"peak_volume_rank"`
-	PeakPriceRank       int               `json:"peak_price_rank"`
-	PeakTickRank        int               `json:"peak_tick_rank"`
-	MaxAnomalyDirection int               `json:"max_anomaly_direction"`
-	MaxAbsorptionSignal int               `json:"max_absorption_signal"`
-	ActiveLevels        []AbsorptionLevel `json:"active_levels,omitempty"`
-	PeakAnomalyPrice    float64           `json:"peak_anomaly_price"`
-	PeakAbsorptionPrice float64           `json:"peak_absorption_price"`
-}
-
 type Bar struct {
 	Timestamp       time.Time `json:"timestamp"`
 	InstrumentToken int32     `json:"instrument_token"`
@@ -73,13 +33,13 @@ type Bar struct {
 	VAH float64 `json:"vah"`
 	VAL float64 `json:"val"`
 
-	// ---- Dynamic Structural Strategy Blocks ----
-	Peaks             PeakAnomalyMetrics `json:"peaks"`
-	SignificantEvents []AnomalySnapshot  `json:"significant_events,omitempty"`
-
 	TotalBuyQty  float64 `json:"total_buy_qty"`
 	TotalSellQty float64 `json:"total_sell_qty"`
 	ChangePct    float64 `json:"change_pct"`
+
+	VolumeRank int `json:"volume_rank"`
+	TickRank   int `json:"tick_rank"`
+	PriceRank  int `json:"price_rank"`
 }
 
 type VPNode struct {
