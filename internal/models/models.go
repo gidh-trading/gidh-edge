@@ -122,32 +122,27 @@ type JSONResponse struct {
 // gidh-edge/internal/models/models.go
 
 type OrderBookEntry struct {
-	OrderID       string    `json:"order_id"`
-	Symbol        string    `json:"symbol"`
-	Product       string    `json:"product"`
-	Side          string    `json:"side"`
-	OrderType     string    `json:"order_type"`
-	Qty           int       `json:"qty"`
-	FilledQty     int       `json:"filled_qty"`
-	Price         float64   `json:"price"`
-	Status        string    `json:"status"`
-	Timestamp     time.Time `json:"timestamp"`
-	TargetPrice   float64   `json:"target_price,omitempty"`
-	StopLossPrice float64   `json:"stop_loss_price,omitempty"`
-	TradingDate   time.Time `json:"trading_date"`
-	UserEmail     string    `json:"user_email,omitempty"`
+	OrderID   string    `json:"order_id"`
+	Symbol    string    `json:"symbol"`
+	Side      string    `json:"side"` // BUY, SELL
+	OrderType string    `json:"order_type"`
+	Qty       int       `json:"qty"`
+	FilledQty int       `json:"filled_qty"` // Explicitly snake_case for UI progress bar streams
+	Price     float64   `json:"price"`
+	Status    string    `json:"status"` // PENDING, COMPLETE, CANCELLED, REJECTED
+	Timestamp time.Time `json:"timestamp"`
+	UserEmail string    `json:"user_email,omitempty"`
 }
 
 type Position struct {
 	TradingDate   time.Time `json:"trading_date"`
 	Symbol        string    `json:"symbol"`
 	Product       string    `json:"product"`
-	Side          string    `json:"side"`
+	Side          string    `json:"side"` // LONG, SHORT, or empty "" if flat
 	NetQuantity   int       `json:"net_quantity"`
-	AveragePrice  float64   `json:"average_price"` // 🧠 Fixed: changed from "avg_price"
+	AveragePrice  float64   `json:"average_price"`
 	RealizedPnL   float64   `json:"realized_pnl"`
-	UnrealizedPnL float64   `json:"unrealized_pnl"`  // 🧠 Added field
-	TargetPrice   float64   `json:"target_price"`    // 🧠 Added field
-	StopLossPrice float64   `json:"stop_loss_price"` // 🧠 Added field
-	UpdatedAt     time.Time `json:"updated_at,omitempty"`
+	UnrealizedPnL float64   `json:"unrealized_pnl"`  // Computed dynamically per tick on backend
+	TargetPrice   float64   `json:"target_price"`    // Syncs visual chart target boundaries
+	StopLossPrice float64   `json:"stop_loss_price"` // Syncs visual chart floor boundaries
 }

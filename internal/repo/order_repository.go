@@ -18,28 +18,28 @@ func NewOrderRepository(db *sql.DB) *OrderRepository {
 
 // GetHistoricalOrders fetches orders matching a specific trading date from the database
 func (r *OrderRepository) GetHistoricalOrders(ctx context.Context, tradingDate time.Time) ([]models.OrderBookEntry, error) {
+	// 1. Updated query matching the columns of your updated gidh_orders table
 	query := `
 		SELECT order_id, symbol, product, side, order_type, quantity, 
-		       filled_qty, price, status, timestamp, target_price, 
-		       sl_price, user_email
+		       filled_qty, price, status, timestamp, user_email
 		FROM gidh_orders
 		WHERE trading_date = $1::date;`
 
 	rows, err := r.db.QueryContext(ctx, query, tradingDate)
-
 	if err != nil {
 		return nil, err
 	}
-
 	defer rows.Close()
 
 	var orders []models.OrderBookEntry
 	for rows.Next() {
 		var o models.OrderBookEntry
+
+		var discardedProduct string
+
 		err := rows.Scan(
-			&o.OrderID, &o.Symbol, &o.Product, &o.Side, &o.OrderType, &o.Qty,
-			&o.FilledQty, &o.Price, &o.Status, &o.Timestamp, &o.TargetPrice,
-			&o.StopLossPrice, &o.UserEmail,
+			&o.OrderID, &o.Symbol, &discardedProduct, &o.Side, &o.OrderType, &o.Qty,
+			&o.FilledQty, &o.Price, &o.Status, &o.Timestamp, &o.UserEmail,
 		)
 		if err != nil {
 			return nil, err
