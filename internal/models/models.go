@@ -118,10 +118,9 @@ type PricePotential struct {
 }
 
 type Snapshot struct {
-	HistoryBars    []Bar            `json:"history_bars"`
-	MarketDNA      *MarketDNA       `json:"market_dna"`
-	VolumeProfiles []VolumeProfile  `json:"volume_profiles"`
-	PricePotential []PricePotential `json:"price_potential"`
+	HistoryBars    []Bar           `json:"history_bars"`
+	MarketDNA      *MarketDNA      `json:"market_dna"`
+	VolumeProfiles []VolumeProfile `json:"volume_profiles"`
 }
 
 // JSONResponse is the standard Edge API response wrapper

@@ -109,3 +109,29 @@ func (h *EdgeHandler) HandleProxy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
 }
+
+func (h *EdgeHandler) GetPricePotential(w http.ResponseWriter, r *http.Request) {
+	stockName := r.URL.Query().Get("stock_name")
+	interval := r.URL.Query().Get("interval")
+
+	if stockName == "" {
+		h.sendError(w, http.StatusBadRequest, "Missing required query parameter: stock_name")
+		return
+	}
+
+	if interval == "" {
+		interval = "1m" // fallback default matching your snapshot logic
+	}
+
+	potential, err := h.service.GetPricePotential(r.Context(), stockName, interval)
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, "Failed to retrieve price potential metrics")
+		return
+	}
+
+	if potential == nil {
+		potential = []models.PricePotential{}
+	}
+
+	h.sendResponse(w, http.StatusOK, "success", potential, "")
+}

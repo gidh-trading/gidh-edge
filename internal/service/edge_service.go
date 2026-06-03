@@ -52,3 +52,8 @@ func (s *EdgeService) GetAllInstruments(ctx context.Context, date time.Time) ([]
 func (s *EdgeService) ProxyRequest(ctx context.Context, method, uri string, body io.Reader, headers http.Header) (*http.Response, error) {
 	return s.engine.ForwardRawRequest(ctx, method, uri, body, headers)
 }
+
+func (s *EdgeService) GetPricePotential(ctx context.Context, stockName string, interval string) ([]models.PricePotential, error) {
+	// Since s.repo is explicitly a *repo.PostgresRepo, it satisfies MarketDataRepo
+	return s.repo.GetPricePotential(ctx, stockName, interval)
+}

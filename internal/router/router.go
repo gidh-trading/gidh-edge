@@ -33,6 +33,7 @@ func NewRouter(
 		r.Get("/available-dates", backtestH.GetAvailableDates)
 		r.Get("/instruments", edgeH.GetAvailableInstruments)
 		r.Get("/instruments/all", edgeH.GetAllInstruments)
+		r.Get("/price-potential", edgeH.GetPricePotential)
 		r.Get("/snapshot/{token}/{date}", snapH.GetSnapshot)
 		r.Get("/market-dna/{token}/{date}", edgeH.GetMarketDNA)
 		r.Get("/alerts", edgeH.HandleProxy)

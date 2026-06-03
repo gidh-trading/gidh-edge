@@ -33,27 +33,11 @@ func (s *SnapshotService) GetFullDaySnapshot(ctx context.Context, token uint32, 
 		logger.Warnf("Failed to fetch Volume Profiles for token %d on %v: %v", token, date, err)
 	}
 
-	// 🎯 5. Extract stock name from history and query the view
-	var potential []models.PricePotential
-	if len(history) > 0 {
-		stockName := history[0].StockName
-		potential, err = s.repo.GetPricePotential(ctx, stockName, interval)
-		if err != nil {
-			logger.Warnf("Failed to fetch Price Potential metrics for %s (%s): %v", stockName, interval, err)
-		}
-	}
-
-	// Ensure it initializes to an empty slice instead of null if no data is found
-	if potential == nil {
-		potential = []models.PricePotential{}
-	}
-
-	// 6. Construct and return the full snapshot
+	// 6. Construct and return the full snapshot (PricePotential removed)
 	snapshot := models.Snapshot{
 		HistoryBars:    history,
 		MarketDNA:      dna,
 		VolumeProfiles: profiles,
-		PricePotential: potential, // 🎯 Included in the response
 	}
 
 	return snapshot, nil
