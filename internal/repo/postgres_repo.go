@@ -66,7 +66,7 @@ func (r *PostgresRepo) GetBarsHistory(ctx context.Context, token uint32, date ti
           timestamp, instrument_token, stock_name, timeframe, 
           open, high, low, close, volume, tick_count, vwap,
           poc, vah, val, total_buy_qty, total_sell_qty, change_pct,
-          volume_rank, tick_rank, price_rank
+          volume_rank, tick_rank, price_rank, range_rank
        FROM gidh_bars 
        WHERE instrument_token = $1 
          AND timeframe = $3
@@ -109,6 +109,7 @@ func (r *PostgresRepo) GetBarsHistory(ctx context.Context, token uint32, date ti
 			&b.VolumeRank,
 			&b.TickRank,
 			&b.PriceRank,
+			&b.RangeRank,
 		)
 		if err != nil {
 			logger.Errorf("failed to scan bar: %v", err)
@@ -206,4 +207,42 @@ func (r *PostgresRepo) GetDNADates(ctx context.Context) (map[string]bool, error)
 		dates[t.Format("2006-01-02")] = true
 	}
 	return dates, nil
+}
+
+func (r *PostgresRepo) GetPricePotential(ctx context.Context, stockName string, interval string) ([]models.PricePotential, error) {
+	// 🎯 Note: 'timeframe' is queried in the WHERE clause, but aliased as 'interval' for the Go Struct mapper
+	query := `
+		SELECT stock_name, timeframe AS interval, p97, p90, p75, p50, p25
+		FROM public.gidh_bars_price_potential
+		WHERE stock_name = $1 AND timeframe = $2;`
+
+	rows, err := r.db.QueryContext(ctx, query, stockName, interval)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []models.PricePotential
+	for rows.Next() {
+		var p models.PricePotential
+		err := rows.Scan(
+			&p.StockName,
+			&p.Interval, // Maps smoothly here!
+			&p.P97,
+			&p.P90,
+			&p.P75,
+			&p.P50,
+			&p.P25,
+		)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, p)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return results, nil
 }

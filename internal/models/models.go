@@ -40,6 +40,7 @@ type Bar struct {
 	VolumeRank int `json:"volume_rank"`
 	TickRank   int `json:"tick_rank"`
 	PriceRank  int `json:"price_rank"`
+	RangeRank  int `json:"range_rank"`
 }
 
 type VPNode struct {
@@ -106,10 +107,21 @@ type TimeBucketDNA struct {
 	RangeP95  float64 `json:"range_p95,omitempty"`
 }
 
+type PricePotential struct {
+	StockName string  `json:"stock_name"`
+	Interval  string  `json:"interval"`
+	P97       float64 `json:"p97"`
+	P90       float64 `json:"p90"`
+	P75       float64 `json:"p75"`
+	P50       float64 `json:"p50"`
+	P25       float64 `json:"p25"`
+}
+
 type Snapshot struct {
-	HistoryBars    []Bar           `json:"history_bars"`
-	MarketDNA      *MarketDNA      `json:"market_dna"`
-	VolumeProfiles []VolumeProfile `json:"volume_profiles"`
+	HistoryBars    []Bar            `json:"history_bars"`
+	MarketDNA      *MarketDNA       `json:"market_dna"`
+	VolumeProfiles []VolumeProfile  `json:"volume_profiles"`
+	PricePotential []PricePotential `json:"price_potential"`
 }
 
 // JSONResponse is the standard Edge API response wrapper
