@@ -157,3 +157,42 @@ type Position struct {
 	TargetPrice   float64   `json:"target_price"`    // Syncs visual chart target boundaries
 	StopLossPrice float64   `json:"stop_loss_price"` // Syncs visual chart floor boundaries
 }
+
+// internal/models/models.go
+
+type MockTrade struct {
+	Symbol          string  `json:"symbol"`
+	Exchange        string  `json:"exchange"`         // Default "NSE"
+	TransactionType string  `json:"transaction_type"` // BUY or SELL
+	Product         string  `json:"product"`          // CNC or MIS
+	OrderType       string  `json:"order_type"`       // MARKET or LIMIT
+	Quantity        int     `json:"quantity"`
+	Price           float64 `json:"price"`
+}
+
+type VirtualContractNoteRequest struct {
+	Trades []MockTrade `json:"trades"`
+}
+
+type EnrichedMockTrade struct {
+	Timestamp       time.Time `json:"timestamp"`
+	Side            string    `json:"side"`
+	Symbol          string    `json:"symbol"`
+	Exchange        string    `json:"exchange"`
+	Quantity        int       `json:"quantity"`
+	AveragePrice    float64   `json:"average_price"`
+	AllocatedCharge float64   `json:"allocated_charge"` // Total transactional friction for this leg
+}
+
+type VirtualContractNoteResponse struct {
+	Summary struct {
+		Brokerage              float64 `json:"brokerage"`
+		STT                    float64 `json:"stt"`
+		StampDuty              float64 `json:"stamp_duty"`
+		ExchangeTurnoverCharge float64 `json:"exchange_turnover_charge"`
+		SEBITurnoverCharge     float64 `json:"sebi_turnover_charge"`
+		GST                    float64 `json:"gst"`
+		TotalCharges           float64 `json:"total_charges"`
+	} `json:"summary"`
+	Trades []EnrichedMockTrade `json:"trades"`
+}

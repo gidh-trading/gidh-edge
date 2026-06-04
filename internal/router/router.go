@@ -50,6 +50,7 @@ func NewRouter(
 		r.Post("/orders/modify", orderH.HandleOrderModify)
 		r.Post("/orders/cancel", orderH.HandleOrderCancel)
 		r.Get("/orders/{date}", orderH.HandleGetHistoricalOrders)
+		r.Get("/orders/vcn", orderH.HandleVirtualContractNote)
 
 		// --- Position Management ---
 		r.Get("/positions", orderH.HandleGetPositions) // From previous step

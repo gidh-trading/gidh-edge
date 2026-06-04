@@ -29,7 +29,7 @@ func main() {
 	edgeSvc := service.NewEdgeService(repoInstance, engineClient)
 	snapSvc := service.NewSnapshotService(repoInstance, engineClient)
 	backtestSvc := service.NewBacktestService(engineClient, repoInstance, cfg.App.BacktestBackupDir)
-	orderSvc := service.NewOrderService(engineClient, orderRepoInstance)
+	orderSvc := service.NewOrderService(engineClient, orderRepoInstance, cfg.Kite.APIKey, cfg.Kite.AccessToken)
 
 	// Initialize handlers
 	edgeH := handler.NewEdgeHandler(edgeSvc)

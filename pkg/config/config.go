@@ -7,9 +7,14 @@ import (
 )
 
 type Config struct {
-	API APIConfig
-	DB  DBConfig
-	App AppConfig
+	API  APIConfig
+	DB   DBConfig
+	App  AppConfig
+	Kite KiteConfig
+}
+type KiteConfig struct {
+	APIKey      string
+	AccessToken string
 }
 
 type APIConfig struct {
@@ -61,6 +66,10 @@ func Load() *Config {
 			Mode:              mode,
 			BacktestBackupDir: getEnv("BACKTEST_BACKUP_DIR", ""),
 			BacktestDataDir:   getEnv("BACKTEST_DATA_DIR", ""),
+		},
+		Kite: KiteConfig{
+			APIKey:      getEnv("KITE_API_KEY", ""),
+			AccessToken: getEnv("KITE_ACCESS_TOKEN", ""),
 		},
 	}
 }

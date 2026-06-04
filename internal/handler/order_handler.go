@@ -5,6 +5,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"gidh-edge/internal/models"
 	"gidh-edge/internal/service"
 	"io"
@@ -92,6 +93,19 @@ func (h *OrderHandler) HandleGetHistoricalPositions(w http.ResponseWriter, r *ht
 	}
 
 	h.sendResponse(w, http.StatusOK, "success", positions, "Historical positions retrieved successfully")
+}
+
+// HandleVirtualContractNote processes GET /api/orders/vcn natively from the Edge layer
+func (h *OrderHandler) HandleVirtualContractNote(w http.ResponseWriter, r *http.Request) {
+	note, err := h.service.GetVirtualContractNote(r.Context())
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to construct contract note ledger: %v", err))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(note)
 }
 
 // --- Private Proxy Helper ---
