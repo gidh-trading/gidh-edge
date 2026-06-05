@@ -11,6 +11,14 @@ type Instrument struct {
 	StockName string `json:"stock_name"`
 }
 
+type BarAnalytics struct {
+	VolumeRank int    `json:"volume_rank"`
+	TickRank   int    `json:"tick_rank"`
+	PriceRank  int    `json:"price_rank"`
+	RangeRank  int    `json:"range_rank"`
+	Direction  string `json:"direction"`
+}
+
 type Bar struct {
 	Timestamp       time.Time `json:"timestamp"`
 	InstrumentToken int32     `json:"instrument_token"`
@@ -37,10 +45,8 @@ type Bar struct {
 	TotalSellQty float64 `json:"total_sell_qty"`
 	ChangePct    float64 `json:"change_pct"`
 
-	VolumeRank int `json:"volume_rank"`
-	TickRank   int `json:"tick_rank"`
-	PriceRank  int `json:"price_rank"`
-	RangeRank  int `json:"range_rank"`
+	// Analytical Metadata Container
+	Analytics BarAnalytics `json:"analytics"`
 }
 
 type VPNode struct {

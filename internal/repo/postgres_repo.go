@@ -60,13 +60,12 @@ func (r *PostgresRepo) GetInstruments(ctx context.Context, date time.Time) ([]mo
 }
 
 func (r *PostgresRepo) GetBarsHistory(ctx context.Context, token uint32, date time.Time, timeframe string) ([]models.Bar, error) {
-	// 1. Updated SELECT query to map to the new peaks and significant_events JSONB columns
+	// 1. Query fetches the single consolidated analytics JSONB column
 	query := `
        SELECT 
           timestamp, instrument_token, stock_name, timeframe, 
           open, high, low, close, volume, tick_count, vwap,
-          poc, vah, val, total_buy_qty, total_sell_qty, change_pct,
-          volume_rank, tick_rank, price_rank, range_rank
+          poc, vah, val, total_buy_qty, total_sell_qty, change_pct, analytics
        FROM gidh_bars 
        WHERE instrument_token = $1 
          AND timeframe = $3
@@ -86,8 +85,10 @@ func (r *PostgresRepo) GetBarsHistory(ctx context.Context, token uint32, date ti
 	var bars []models.Bar
 	for rows.Next() {
 		var b models.Bar
+		// Declare a temporary slice of bytes to hold the raw JSON data string from database
+		var analyticsBytes []byte
 
-		// 2. Scan raw database fields including our target json byte strings
+		// 2. Scan directly into fields, catching the raw json array in our byte buffer
 		err := rows.Scan(
 			&b.Timestamp,
 			&b.InstrumentToken,
@@ -106,17 +107,26 @@ func (r *PostgresRepo) GetBarsHistory(ctx context.Context, token uint32, date ti
 			&b.TotalBuyQty,
 			&b.TotalSellQty,
 			&b.ChangePct,
-			&b.VolumeRank,
-			&b.TickRank,
-			&b.PriceRank,
-			&b.RangeRank,
+			&analyticsBytes, // 🔥 Scan database drivers raw uint8 data straight to standard byte slices
 		)
 		if err != nil {
-			logger.Errorf("failed to scan bar: %v", err)
+			logger.Errorf("failed to scan bar rows fields: %v", err)
 			return nil, err
 		}
 
+		// 3. 🔥 Unmarshal the json string straight into the internal struct property
+		if len(analyticsBytes) > 0 {
+			if err := json.Unmarshal(analyticsBytes, &b.Analytics); err != nil {
+				logger.Errorf("failed to unmarshal nested analytics JSONB: %v", err)
+				return nil, err
+			}
+		}
+
 		bars = append(bars, b)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return bars, nil
