@@ -16,11 +16,17 @@ import (
 )
 
 type OrderHandler struct {
-	service *service.OrderService
+	service    *service.OrderService
+	edgeServ   *service.EdgeService
+	isBacktest bool
 }
 
-func NewOrderHandler(s *service.OrderService) *OrderHandler {
-	return &OrderHandler{service: s}
+func NewOrderHandler(s *service.OrderService, es *service.EdgeService, mode string) *OrderHandler {
+	return &OrderHandler{
+		service:    s,
+		edgeServ:   es,
+		isBacktest: mode == "backtest",
+	}
 }
 
 // --- Order Management Handlers ---
@@ -97,6 +103,22 @@ func (h *OrderHandler) HandleGetHistoricalPositions(w http.ResponseWriter, r *ht
 
 // HandleVirtualContractNote processes GET /api/orders/vcn natively from the Edge layer
 func (h *OrderHandler) HandleVirtualContractNote(w http.ResponseWriter, r *http.Request) {
+
+	if h.isBacktest {
+		resp, err := h.edgeServ.FetchGlobalBacktestVCN(r.Context())
+		if err != nil {
+			h.sendError(w, http.StatusBadGateway, "Simulation execution engine is currently unreachable")
+			return
+		}
+		defer resp.Body.Close()
+
+		// Stream the backend's single account metrics directly to the user
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, resp.Body)
+		return
+	}
+
 	note, err := h.service.GetVirtualContractNote(r.Context())
 	if err != nil {
 		h.sendError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to construct contract note ledger: %v", err))

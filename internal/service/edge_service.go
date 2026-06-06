@@ -57,3 +57,8 @@ func (s *EdgeService) GetPricePotential(ctx context.Context, stockName string, i
 	// Since s.repo is explicitly a *repo.PostgresRepo, it satisfies MarketDataRepo
 	return s.repo.GetPricePotential(ctx, stockName, interval)
 }
+
+func (s *EdgeService) FetchGlobalBacktestVCN(ctx context.Context) (*http.Response, error) {
+	uri := "/api/internal/backtest/vcn/all"
+	return s.engine.ForwardRawRequest(ctx, "GET", uri, nil, nil)
+}

@@ -107,7 +107,7 @@ func (r *PostgresRepo) GetBarsHistory(ctx context.Context, token uint32, date ti
 			&b.TotalBuyQty,
 			&b.TotalSellQty,
 			&b.ChangePct,
-			&analyticsBytes, // 🔥 Scan database drivers raw uint8 data straight to standard byte slices
+			&analyticsBytes,
 		)
 		if err != nil {
 			logger.Errorf("failed to scan bar rows fields: %v", err)

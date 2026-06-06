@@ -35,7 +35,7 @@ func main() {
 	edgeH := handler.NewEdgeHandler(edgeSvc)
 	snapH := handler.NewSnapshotHandler(snapSvc)
 	backtestH := handler.NewBacktestHandler(backtestSvc)
-	orderH := handler.NewOrderHandler(orderSvc)
+	orderH := handler.NewOrderHandler(orderSvc, edgeSvc, cfg.App.Mode)
 
 	// Pass all three handlers to the router
 	r := router.NewRouter(edgeH, snapH, backtestH, orderH)
