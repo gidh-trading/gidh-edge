@@ -256,3 +256,49 @@ func (r *PostgresRepo) GetPricePotential(ctx context.Context, stockName string, 
 
 	return results, nil
 }
+
+func (r *PostgresRepo) GetInstrumentProfiles(ctx context.Context) ([]models.InstrumentProfile, error) {
+	query := `
+		SELECT ic.stock_name,
+		       ip.instrument_token,
+		       ip.bucket_size,
+		       ip.atr_14,
+		       ip.adr_pct,
+		       ip.adv_30d,
+		       ip.adv_val_30d,
+		       ip.updated_at
+		FROM instrument_configs ic
+		JOIN instrument_profile ip ON ic.instrument_token = ip.instrument_token
+		ORDER BY ic.stock_name;`
+
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var profiles []models.InstrumentProfile
+	for rows.Next() {
+		var ip models.InstrumentProfile
+		err := rows.Scan(
+			&ip.StockName,
+			&ip.InstrumentToken,
+			&ip.BucketSize,
+			&ip.ATR14,
+			&ip.ADRPct,
+			&ip.ADV30d,
+			&ip.ADVVal30d,
+			&ip.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		profiles = append(profiles, ip)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return profiles, nil
+}

@@ -135,3 +135,17 @@ func (h *EdgeHandler) GetPricePotential(w http.ResponseWriter, r *http.Request) 
 
 	h.sendResponse(w, http.StatusOK, "success", potential, "")
 }
+
+func (h *EdgeHandler) GetInstrumentProfiles(w http.ResponseWriter, r *http.Request) {
+	profiles, err := h.service.GetInstrumentProfiles(r.Context())
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, "Failed to retrieve instrument metrics profiles")
+		return
+	}
+
+	if profiles == nil {
+		profiles = []models.InstrumentProfile{} // Return explicit empty array instead of null
+	}
+
+	h.sendResponse(w, http.StatusOK, "success", profiles, "Instrument profiles retrieved successfully")
+}

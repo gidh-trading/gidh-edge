@@ -164,3 +164,14 @@ type VirtualContractNoteResponse struct {
 	} `json:"summary"`
 	Trades []EnrichedMockTrade `json:"trades"`
 }
+
+type InstrumentProfile struct {
+	StockName       string    `json:"stock_name"`
+	InstrumentToken uint32    `json:"instrument_token"`
+	BucketSize      float64   `json:"bucket_size"`
+	ATR14           float64   `json:"atr_14"`
+	ADRPct          float64   `json:"adr_pct"`
+	ADV30d          int64     `json:"adv_30d"`
+	ADVVal30d       float64   `json:"adv_val_30d"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
