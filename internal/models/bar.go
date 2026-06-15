@@ -5,11 +5,16 @@ import (
 )
 
 type BarAnalytics struct {
-	VolumeRank int    `json:"volume_rank"`
-	TickRank   int    `json:"tick_rank"`
-	PriceRank  int    `json:"price_rank"`
-	RangeRank  int    `json:"range_rank"`
-	Direction  string `json:"direction"`
+	VolumeRank             int     `json:"volume_rank"`
+	TickRank               int     `json:"tick_rank"`
+	PriceRank              int     `json:"price_rank"`
+	RangeRank              int     `json:"range_rank"`
+	Direction              string  `json:"direction"`
+	UpperWickRank          int     `json:"upper_wick_rank"`
+	LowerWickRank          int     `json:"lower_wick_rank"`
+	NetEfficiency          float64 `json:"net_efficiency"`
+	NetEfficiencySlope     float64 `json:"net_efficiency_slope"`
+	NormalizedVwapDistance float64 `json:"normalized_vwap_distance"`
 }
 
 type Bar struct {
