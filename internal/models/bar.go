@@ -5,15 +5,19 @@ import (
 )
 
 type BarAnalytics struct {
-	VolumeRank             int     `json:"volume_rank"`
-	TickRank               int     `json:"tick_rank"`
-	PriceRank              int     `json:"price_rank"`
-	RangeRank              int     `json:"range_rank"`
-	Direction              string  `json:"direction"`
-	UpperWickRank          int     `json:"upper_wick_rank"`
-	LowerWickRank          int     `json:"lower_wick_rank"`
-	NetEfficiency          float64 `json:"net_efficiency"`
-	NetEfficiencySlope     float64 `json:"net_efficiency_slope"`
+	VolumeRank    int    `json:"volume_rank"`
+	TickRank      int    `json:"tick_rank"`
+	PriceRank     int    `json:"price_rank"`
+	RangeRank     int    `json:"range_rank"`
+	Direction     string `json:"direction"`
+	UpperWickRank int    `json:"upper_wick_rank"`
+	LowerWickRank int    `json:"lower_wick_rank"`
+
+	// --- Decoupled & Bounded Order Flow Metrics (-100 to +100) ---
+	NetVolumeMood float64 `json:"net_volume_mood"` // Volume commitment score
+	NetPriceMood  float64 `json:"net_price_mood"`  // Price displacement velocity
+
+	// Retained helper distances if needed by structural components
 	NormalizedVwapDistance float64 `json:"normalized_vwap_distance"`
 	TimePctAboveVwap       float64 `json:"time_pct_above_vwap"`
 }

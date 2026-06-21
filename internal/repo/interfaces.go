@@ -13,5 +13,5 @@ type MarketDataRepo interface {
 	GetBarsHistory(ctx context.Context, token uint32, date time.Time, interval string) ([]models.Bar, error)
 	GetMarketDNA(ctx context.Context, token uint32, date time.Time) (*models.MarketDNA, error)
 	GetVolumeProfiles(ctx context.Context, token uint32, date time.Time, limit int) ([]models.VolumeProfile, error)
-	GetInstrumentProfiles(ctx context.Context) ([]models.InstrumentProfile, error)
+	GetInstrumentProfiles(ctx context.Context, targetDate string) ([]models.InstrumentProfile, error)
 }

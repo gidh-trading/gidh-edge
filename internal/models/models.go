@@ -168,6 +168,7 @@ type VirtualContractNoteResponse struct {
 type InstrumentProfile struct {
 	StockName       string    `json:"stock_name"`
 	InstrumentToken uint32    `json:"instrument_token"`
+	TradingDate     time.Time `json:"trading_date"`
 	BucketSize      float64   `json:"bucket_size"`
 	ATR14           float64   `json:"atr_14"`
 	ADRPct          float64   `json:"adr_pct"`

@@ -63,6 +63,6 @@ func (s *EdgeService) FetchGlobalBacktestVCN(ctx context.Context) (*http.Respons
 	return s.engine.ForwardRawRequest(ctx, "GET", uri, nil, nil)
 }
 
-func (s *EdgeService) GetInstrumentProfiles(ctx context.Context) ([]models.InstrumentProfile, error) {
-	return s.repo.GetInstrumentProfiles(ctx)
+func (s *EdgeService) GetInstrumentProfiles(ctx context.Context, targetDate string) ([]models.InstrumentProfile, error) {
+	return s.repo.GetInstrumentProfiles(ctx, targetDate)
 }

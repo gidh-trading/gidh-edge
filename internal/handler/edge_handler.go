@@ -137,14 +137,22 @@ func (h *EdgeHandler) GetPricePotential(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *EdgeHandler) GetInstrumentProfiles(w http.ResponseWriter, r *http.Request) {
-	profiles, err := h.service.GetInstrumentProfiles(r.Context())
+	// Extract date query parameter from request
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		h.sendError(w, http.StatusBadRequest, "Missing required query parameter: date")
+		return
+	}
+
+	// Pass the date down into the context or service layer
+	profiles, err := h.service.GetInstrumentProfiles(r.Context(), dateStr)
 	if err != nil {
 		h.sendError(w, http.StatusInternalServerError, "Failed to retrieve instrument metrics profiles")
 		return
 	}
 
 	if profiles == nil {
-		profiles = []models.InstrumentProfile{} // Return explicit empty array instead of null
+		profiles = []models.InstrumentProfile{} // Explicit empty array payload
 	}
 
 	h.sendResponse(w, http.StatusOK, "success", profiles, "Instrument profiles retrieved successfully")

@@ -257,21 +257,24 @@ func (r *PostgresRepo) GetPricePotential(ctx context.Context, stockName string, 
 	return results, nil
 }
 
-func (r *PostgresRepo) GetInstrumentProfiles(ctx context.Context) ([]models.InstrumentProfile, error) {
+func (r *PostgresRepo) GetInstrumentProfiles(ctx context.Context, targetDate string) ([]models.InstrumentProfile, error) {
+	// 1. Optimized query removing unnecessary casting for optimal index usage
 	query := `
-		SELECT ic.stock_name,
-		       ip.instrument_token,
-		       ip.bucket_size,
-		       ip.atr_14,
-		       ip.adr_pct,
-		       ip.adv_30d,
-		       ip.adv_val_30d,
-		       ip.updated_at
-		FROM instrument_configs ic
-		JOIN instrument_profile ip ON ic.instrument_token = ip.instrument_token
-		ORDER BY ic.stock_name;`
+       SELECT ic.stock_name,
+              ip.instrument_token,
+              ip.trading_date, -- Added if you need the date inside your Go struct
+              ip.bucket_size,
+              ip.atr_14,
+              ip.adr_pct,
+              ip.adv_30d,
+              ip.adv_val_30d,
+              ip.updated_at
+       FROM instrument_configs ic
+       JOIN instrument_profile ip ON ic.instrument_token = ip.instrument_token
+       WHERE ip.trading_date = $1
+       ORDER BY ic.stock_name;`
 
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := r.db.QueryContext(ctx, query, targetDate)
 	if err != nil {
 		return nil, err
 	}
@@ -280,9 +283,11 @@ func (r *PostgresRepo) GetInstrumentProfiles(ctx context.Context) ([]models.Inst
 	var profiles []models.InstrumentProfile
 	for rows.Next() {
 		var ip models.InstrumentProfile
+		// 2. Scan targets must exactly match the index locations in your SELECT sequence
 		err := rows.Scan(
 			&ip.StockName,
 			&ip.InstrumentToken,
+			&ip.TradingDate, // Ensure this exists in models.InstrumentProfile (as string or time.Time)
 			&ip.BucketSize,
 			&ip.ATR14,
 			&ip.ADRPct,
