@@ -176,3 +176,20 @@ type InstrumentProfile struct {
 	ADVVal30d       float64   `json:"adv_val_30d"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
+
+type VWAPDistancePercentiles struct {
+	InstrumentToken uint32    `json:"instrument_token"`
+	StockName       string    `json:"stock_name"`
+	TradingDate     time.Time `json:"trading_date"`
+	PosP50          float64   `json:"pos_p50"`
+	PosP75          float64   `json:"pos_p75"`
+	PosP90          float64   `json:"pos_p90"`
+	PosP97          float64   `json:"pos_p97"`
+	PosP99          float64   `json:"pos_p99"`
+	NegP50          float64   `json:"neg_p50"`
+	NegP75          float64   `json:"neg_p75"`
+	NegP90          float64   `json:"neg_p90"`
+	NegP97          float64   `json:"neg_p97"`
+	NegP99          float64   `json:"neg_p99"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}

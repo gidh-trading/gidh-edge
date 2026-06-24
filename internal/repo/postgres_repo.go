@@ -307,3 +307,55 @@ func (r *PostgresRepo) GetInstrumentProfiles(ctx context.Context, targetDate str
 
 	return profiles, nil
 }
+
+// internal/repo/postgres_repo.go
+
+func (r *PostgresRepo) GetVWAPDistancePercentiles(ctx context.Context, targetDate string) ([]models.VWAPDistancePercentiles, error) {
+	query := `
+       SELECT instrument_token,
+              stock_name,
+              trading_date,
+              pos_p50, pos_p75, pos_p90, pos_p97, pos_p99,
+              neg_p50, neg_p75, neg_p90, neg_p97, neg_p99,
+              updated_at
+       FROM public.gidh_vwap_distance_percentiles
+       WHERE trading_date = $1
+       ORDER BY stock_name;`
+
+	rows, err := r.db.QueryContext(ctx, query, targetDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var percentiles []models.VWAPDistancePercentiles
+	for rows.Next() {
+		var vp models.VWAPDistancePercentiles
+		err := rows.Scan(
+			&vp.InstrumentToken,
+			&vp.StockName,
+			&vp.TradingDate,
+			&vp.PosP50,
+			&vp.PosP75,
+			&vp.PosP90,
+			&vp.PosP97,
+			&vp.PosP99,
+			&vp.NegP50,
+			&vp.NegP75,
+			&vp.NegP90,
+			&vp.NegP97,
+			&vp.NegP99,
+			&vp.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		percentiles = append(percentiles, vp)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return percentiles, nil
+}

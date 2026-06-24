@@ -66,3 +66,7 @@ func (s *EdgeService) FetchGlobalBacktestVCN(ctx context.Context) (*http.Respons
 func (s *EdgeService) GetInstrumentProfiles(ctx context.Context, targetDate string) ([]models.InstrumentProfile, error) {
 	return s.repo.GetInstrumentProfiles(ctx, targetDate)
 }
+
+func (s *EdgeService) GetVWAPDistancePercentiles(ctx context.Context, targetDate string) ([]models.VWAPDistancePercentiles, error) {
+	return s.repo.GetVWAPDistancePercentiles(ctx, targetDate)
+}

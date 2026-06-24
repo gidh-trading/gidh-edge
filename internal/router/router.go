@@ -34,6 +34,7 @@ func NewRouter(
 		r.Get("/instruments", edgeH.GetAvailableInstruments)
 		r.Get("/instruments/all", edgeH.GetAllInstruments)
 		r.Get("/instruments/profiles", edgeH.GetInstrumentProfiles)
+		r.Get("/instruments/vwap-percentiles", edgeH.GetVWAPDistancePercentiles)
 		r.Get("/price-potential", edgeH.GetPricePotential)
 		r.Get("/snapshot/{token}/{date}", snapH.GetSnapshot)
 		r.Get("/market-dna/{token}/{date}", edgeH.GetMarketDNA)

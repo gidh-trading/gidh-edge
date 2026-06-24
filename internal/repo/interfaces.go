@@ -14,4 +14,5 @@ type MarketDataRepo interface {
 	GetMarketDNA(ctx context.Context, token uint32, date time.Time) (*models.MarketDNA, error)
 	GetVolumeProfiles(ctx context.Context, token uint32, date time.Time, limit int) ([]models.VolumeProfile, error)
 	GetInstrumentProfiles(ctx context.Context, targetDate string) ([]models.InstrumentProfile, error)
+	GetVWAPDistancePercentiles(ctx context.Context, targetDate string) ([]models.VWAPDistancePercentiles, error)
 }

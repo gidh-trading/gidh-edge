@@ -157,3 +157,24 @@ func (h *EdgeHandler) GetInstrumentProfiles(w http.ResponseWriter, r *http.Reque
 
 	h.sendResponse(w, http.StatusOK, "success", profiles, "Instrument profiles retrieved successfully")
 }
+
+func (h *EdgeHandler) GetVWAPDistancePercentiles(w http.ResponseWriter, r *http.Request) {
+	// Extract date query parameter from request
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		h.sendError(w, http.StatusBadRequest, "Missing required query parameter: date")
+		return
+	}
+
+	percentiles, err := h.service.GetVWAPDistancePercentiles(r.Context(), dateStr)
+	if err != nil {
+		h.sendError(w, http.StatusInternalServerError, "Failed to retrieve VWAP distance percentiles")
+		return
+	}
+
+	if percentiles == nil {
+		percentiles = []models.VWAPDistancePercentiles{} // Explicit empty array payload for frontend safety
+	}
+
+	h.sendResponse(w, http.StatusOK, "success", percentiles, "VWAP distance percentiles retrieved successfully")
+}
