@@ -41,7 +41,8 @@ func NewRouter(
 		r.Get("/alerts", edgeH.HandleProxy)
 
 		// --- Backtest Proxy Routes ---
-		r.With(TimeoutMiddleware(3*time.Minute)).Post("/backtest/start", backtestH.HandleProxy)
+		r.Post("/backtest/start", backtestH.HandleProxy)
+		r.Post("/backtest/start/multi", backtestH.HandleProxy)
 		r.Get("/backtest/stop", backtestH.HandleProxy)
 		r.Get("/backtest/available-dates", backtestH.HandleProxy)
 		r.Get("/backtest/status", backtestH.HandleProxy)
