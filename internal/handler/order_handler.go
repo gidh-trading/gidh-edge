@@ -82,23 +82,14 @@ func (h *OrderHandler) HandleGetHistoricalOrders(w http.ResponseWriter, r *http.
 // HandleGetHistoricalPositions processes GET /api/positions/history/{date}
 func (h *OrderHandler) HandleGetHistoricalPositions(w http.ResponseWriter, r *http.Request) {
 	dateParam := chi.URLParam(r, "date")
-	parsedDate, err := time.Parse("2006-01-02", dateParam)
-	if err != nil {
-		h.sendError(w, http.StatusBadRequest, "Invalid date format. Use YYYY-MM-DD")
+	if dateParam == "" {
+		h.sendError(w, http.StatusBadRequest, "Missing required date parameter")
 		return
 	}
 
-	positions, err := h.service.GetHistoricalPositions(r.Context(), parsedDate)
-	if err != nil {
-		h.sendError(w, http.StatusInternalServerError, "Failed to fetch historical positions")
-		return
-	}
-
-	if positions == nil {
-		positions = []models.Position{}
-	}
-
-	h.sendResponse(w, http.StatusOK, "success", positions, "Historical positions retrieved successfully")
+	h.proxyRequest(w, r, func(ctx context.Context, method string, body io.Reader, headers http.Header) (*http.Response, error) {
+		return h.service.ProxyHistoricalPositions(ctx, method, dateParam, body, headers)
+	})
 }
 
 // HandleVirtualContractNote processes GET /api/orders/vcn natively from the Edge layer
