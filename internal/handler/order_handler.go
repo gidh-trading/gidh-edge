@@ -82,14 +82,36 @@ func (h *OrderHandler) HandleGetHistoricalOrders(w http.ResponseWriter, r *http.
 // HandleGetHistoricalPositions processes GET /api/positions/history/{date}
 func (h *OrderHandler) HandleGetHistoricalPositions(w http.ResponseWriter, r *http.Request) {
 	dateParam := chi.URLParam(r, "date")
-	if dateParam == "" {
-		h.sendError(w, http.StatusBadRequest, "Missing required date parameter")
+	parsedDate, err := time.Parse("2006-01-02", dateParam)
+	if err != nil {
+		h.sendError(w, http.StatusBadRequest, "Invalid date format")
 		return
 	}
 
-	h.proxyRequest(w, r, func(ctx context.Context, method string, body io.Reader, headers http.Header) (*http.Response, error) {
-		return h.service.ProxyHistoricalPositions(ctx, method, dateParam, body, headers)
-	})
+	// 1. Try to proxy to the backend
+	resp, err := h.service.ProxyHistoricalPositions(r.Context(), r.Method, dateParam, r.Body, r.Header)
+
+	// 2. If proxy succeeds, stream it
+	if err == nil && resp.StatusCode == http.StatusOK {
+		defer resp.Body.Close()
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, resp.Body)
+		return
+	}
+
+	// 3. Fallback: If proxy fails or backend is offline, fetch from local DB
+	positions, dbErr := h.service.GetHistoricalPositions(r.Context(), parsedDate)
+	if dbErr != nil {
+		h.sendError(w, http.StatusInternalServerError, "Failed to fetch positions from engine and local database")
+		return
+	}
+
+	if positions == nil {
+		positions = []models.Position{}
+	}
+
+	h.sendResponse(w, http.StatusOK, "success", positions, "Retrieved local historical positions (Engine offline)")
 }
 
 // HandleVirtualContractNote processes GET /api/orders/vcn natively from the Edge layer

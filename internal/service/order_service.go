@@ -201,12 +201,16 @@ func (s *OrderService) GetHistoricalOrders(ctx context.Context, tradingDate time
 	return s.repo.GetHistoricalOrders(ctx, tradingDate)
 }
 
+func (s *OrderService) GetHistoricalPositions(ctx context.Context, tradingDate time.Time) ([]models.Position, error) {
+	return s.repo.GetHistoricalPositions(ctx, tradingDate)
+}
+
+// --- Proxy Order System calls remain completely unchanged below ---
+
 func (s *OrderService) ProxyHistoricalPositions(ctx context.Context, method string, date string, body io.Reader, headers http.Header) (*http.Response, error) {
 	uri := fmt.Sprintf("/api/positions/history/%s", date)
 	return s.engine.ForwardRawRequest(ctx, method, uri, body, headers)
 }
-
-// --- Proxy Order System calls remain completely unchanged below ---
 
 func (s *OrderService) ProxyOrder(ctx context.Context, method string, body io.Reader, headers http.Header) (*http.Response, error) {
 	return s.engine.ForwardRawRequest(ctx, method, "/api/orders/place", body, headers)
