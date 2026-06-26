@@ -359,3 +359,22 @@ func (r *PostgresRepo) GetVWAPDistancePercentiles(ctx context.Context, targetDat
 
 	return percentiles, nil
 }
+
+func (r *PostgresRepo) GetInstrumentProfileDates(ctx context.Context) (map[string]bool, error) {
+	query := `SELECT DISTINCT trading_date FROM instrument_profile`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	dates := make(map[string]bool)
+	for rows.Next() {
+		var t time.Time
+		if err := rows.Scan(&t); err != nil {
+			return nil, err
+		}
+		dates[t.Format("2006-01-02")] = true
+	}
+	return dates, nil
+}

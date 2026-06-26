@@ -32,7 +32,13 @@ func (s *BacktestService) GetAvailableDates(ctx context.Context) ([]string, erro
 		return nil, fmt.Errorf("failed to fetch DNA dates: %w", err)
 	}
 
-	// 2. Read the backup directory
+	// 2. Get dates from DB that have Instrument Profiles
+	profileDates, err := s.repo.GetInstrumentProfileDates(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch instrument profile dates: %w", err)
+	}
+
+	// 3. Read the backup directory
 	files, err := os.ReadDir(s.backupDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read backup directory: %w", err)
@@ -51,8 +57,8 @@ func (s *BacktestService) GetAvailableDates(ctx context.Context) ([]string, erro
 			dateStr := strings.TrimPrefix(name, "backup_")
 			dateStr = strings.TrimSuffix(dateStr, ".tar.xz")
 
-			// 3. Check if this date exists in our DNA map
-			if dnaDates[dateStr] {
+			// 4. Check if this date exists in BOTH our DNA map AND the Profile map
+			if dnaDates[dateStr] && profileDates[dateStr] {
 				availableDates = append(availableDates, dateStr)
 			}
 		}

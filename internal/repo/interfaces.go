@@ -8,6 +8,7 @@ import (
 
 type MarketDataRepo interface {
 	GetDNADates(ctx context.Context) (map[string]bool, error)
+	GetInstrumentProfileDates(ctx context.Context) (map[string]bool, error)
 	GetAvailable(ctx context.Context, date time.Time) ([]models.Instrument, error)
 	GetInstruments(ctx context.Context, date time.Time) ([]models.Instrument, error) // Added
 	GetBarsHistory(ctx context.Context, token uint32, date time.Time, interval string) ([]models.Bar, error)
