@@ -7,8 +7,6 @@ import (
 	"gidh-edge/internal/repo"
 	"io"
 	"net/http"
-	"os"
-	"strings"
 )
 
 type BacktestService struct {
@@ -38,29 +36,13 @@ func (s *BacktestService) GetAvailableDates(ctx context.Context) ([]string, erro
 		return nil, fmt.Errorf("failed to fetch instrument profile dates: %w", err)
 	}
 
-	// 3. Read the backup directory
-	files, err := os.ReadDir(s.backupDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read backup directory: %w", err)
-	}
-
+	// 3. Find dates present in BOTH maps
 	var availableDates []string
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
 
-		name := file.Name()
-		// Pattern: backup_YYYY-MM-DD.tar.xz
-		if strings.HasPrefix(name, "backup_") && strings.HasSuffix(name, ".tar.xz") {
-			// Extract YYYY-MM-DD
-			dateStr := strings.TrimPrefix(name, "backup_")
-			dateStr = strings.TrimSuffix(dateStr, ".tar.xz")
-
-			// 4. Check if this date exists in BOTH our DNA map AND the Profile map
-			if dnaDates[dateStr] && profileDates[dateStr] {
-				availableDates = append(availableDates, dateStr)
-			}
+	// Iterate through DNA dates and check if they exist in the profile map
+	for dateStr := range dnaDates {
+		if profileDates[dateStr] {
+			availableDates = append(availableDates, dateStr)
 		}
 	}
 
