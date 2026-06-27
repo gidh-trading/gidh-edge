@@ -116,7 +116,25 @@ func (h *OrderHandler) HandleGetHistoricalPositions(w http.ResponseWriter, r *ht
 
 // HandleVirtualContractNote processes GET /api/orders/vcn natively from the Edge layer
 func (h *OrderHandler) HandleVirtualContractNote(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
 
+	// 1. Capture the query params
+	tradingDate := r.URL.Query().Get("date") // e.g., ?date=2026-06-25
+
+	// 2. FORCE DB ROUTE IF HISTORICAL DATE REQUESTED
+	// Even if app is flagged as backtest, historical dates must read from local DB
+	if tradingDate != "" {
+		note, err := h.service.GetVirtualContractNote(r.Context(), tradingDate)
+		if err != nil {
+			h.sendError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to fetch historical ledger: %v", err))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(note)
+		return
+	}
+
+	// 3. LIVE SESSION BACKTEST PROXY FALLBACK
 	if h.isBacktest {
 		resp, err := h.edgeServ.FetchGlobalBacktestVCN(r.Context())
 		if err != nil {
@@ -125,20 +143,18 @@ func (h *OrderHandler) HandleVirtualContractNote(w http.ResponseWriter, r *http.
 		}
 		defer resp.Body.Close()
 
-		// Stream the backend's single account metrics directly to the user
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(resp.StatusCode)
 		io.Copy(w, resp.Body)
 		return
 	}
 
-	note, err := h.service.GetVirtualContractNote(r.Context())
+	// 4. LIVE PRODUCTION DAY MODE (Zerodha Pipeline)
+	note, err := h.service.GetVirtualContractNote(r.Context(), "")
 	if err != nil {
 		h.sendError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to construct contract note ledger: %v", err))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(note)
 }

@@ -86,3 +86,76 @@ func (r *OrderRepository) GetHistoricalPositions(ctx context.Context, tradingDat
 
 	return positions, nil
 }
+
+// FetchVCNPayload collects completed trades and itemizes charges filtered by user and trading date
+func (r *OrderRepository) FetchVCNPayload(ctx context.Context, userEmail string, dateStr string) (*models.VirtualContractNotePayload, error) {
+	var query string
+	var rows *sql.Rows
+	var err error
+
+	// If no date is passed from UI, default to CURRENT_DATE matching your schema default
+	if dateStr == "" {
+		query = `
+            SELECT order_id, symbol, product, side, quantity, price, timestamp 
+            FROM gidh_orders 
+            WHERE user_email = $1 AND status = 'COMPLETE' AND trading_date = CURRENT_DATE
+            ORDER BY timestamp ASC`
+		rows, err = r.db.QueryContext(ctx, query, userEmail)
+	} else {
+		query = `
+            SELECT order_id, symbol, product, side, quantity, price, timestamp 
+            FROM gidh_orders 
+            WHERE user_email = $1 AND status = 'COMPLETE' AND trading_date = $2
+            ORDER BY timestamp ASC`
+		rows, err = r.db.QueryContext(ctx, query, userEmail, dateStr)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var payload models.VirtualContractNotePayload
+	payload.Trades = make([]models.OrderRecord, 0)
+
+	for rows.Next() {
+		var o models.OrderRecord
+		if err := rows.Scan(&o.OrderID, &o.Symbol, &o.Product, &o.Side, &o.Quantity, &o.Price, &o.Timestamp); err != nil {
+			return nil, err
+		}
+
+		// Apply standard NSE contract transaction cost formulas
+		turnover := float64(o.Quantity) * o.Price
+
+		brokerage := turnover * 0.0003
+		if brokerage > 20.0 {
+			brokerage = 20.0
+		}
+		stt := turnover * 0.00025
+		exchangeFees := turnover * 0.0000345
+		sebiOverhead := turnover * 0.000001
+
+		// Stamp duty is only charged on the BUY side
+		stampDuty := 0.0
+		if o.Side == "BUY" {
+			stampDuty = turnover * 0.00003 // 0.003% for Intraday (MIS)
+		}
+
+		gst := (brokerage + exchangeFees + sebiOverhead) * 0.18
+		totalCharges := brokerage + stt + exchangeFees + sebiOverhead + gst
+
+		o.Charges = totalCharges
+		payload.Trades = append(payload.Trades, o)
+
+		// Accumulate Global Session Summary
+		payload.Summary.Brokerage += brokerage
+		payload.Summary.STT += stt
+		payload.Summary.StampDuty += stampDuty
+		payload.Summary.ExchangeTurnoverCharge += exchangeFees
+		payload.Summary.SebiTurnoverCharge += sebiOverhead
+		payload.Summary.GST += gst
+		payload.Summary.TotalCharges += totalCharges
+	}
+
+	return &payload, nil
+}

@@ -35,17 +35,18 @@ func NewOrderService(e *client.HTTPEngineClient, repo *repo.OrderRepository, api
 	}
 }
 
-func (s *OrderService) GetVirtualContractNote(ctx context.Context) (models.VirtualContractNoteResponse, error) {
-	// --- 1. FALLBACK TO LOCAL ENGINE IF KITE INSTANCE IS EMPTY (Post-Market/Simulation) ---
-	if s.kiteClient == nil {
-		return s.calculateSimulationContractNote(ctx)
+func (s *OrderService) GetVirtualContractNote(ctx context.Context, tradingDate string) (models.VirtualContractNoteResponse, error) {
+	// --- 1. HISTORICAL OR SIMULATION MODE: FETCH DIRECTLY FROM DB ---
+	// If a specific date is requested, or if we don't have a live client context, let edge calculate it
+	if tradingDate != "" || s.kiteClient == nil {
+		return s.calculateSimulationContractNote(ctx, tradingDate)
 	}
 
-	// --- 2. LIVE RETRIEVAL VIA BROKER INTERFACE ---
+	// --- 2. LIVE RETRIEVAL VIA BROKER INTERFACE (Current Session) ---
 	liveTrades, err := s.kiteClient.GetTrades()
 	if err != nil {
 		logger.Errorf("Failed to retrieve live day trades from Zerodha: %v", err)
-		return s.calculateSimulationContractNote(ctx) // Safe fallback if token expires after 15:30
+		return s.calculateSimulationContractNote(ctx, "") // Safe fallback to today's local table state
 	}
 
 	var response models.VirtualContractNoteResponse
@@ -56,7 +57,6 @@ func (s *OrderService) GetVirtualContractNote(ctx context.Context) (models.Virtu
 
 	orderParamsList := make([]kiteconnect.OrderChargesParam, len(liveTrades))
 	for i, t := range liveTrades {
-		// Use "MIS" as fallback default matching app config settings if product is empty
 		prod := t.Product
 		if prod == "" {
 			prod = "MIS"
@@ -105,80 +105,33 @@ func (s *OrderService) GetVirtualContractNote(ctx context.Context) (models.Virtu
 	return s.roundSummaryMetrics(response), nil
 }
 
-func (s *OrderService) calculateSimulationContractNote(ctx context.Context) (models.VirtualContractNoteResponse, error) {
-	var response models.VirtualContractNoteResponse
+func (s *OrderService) calculateSimulationContractNote(ctx context.Context, tradingDate string) (models.VirtualContractNoteResponse, error) {
+	userEmail := "algo.trader@gidh.tech"
 
-	// Fetch database executed orders for the active live trading day ledger
-	dbOrders, err := s.repo.GetHistoricalOrders(ctx, time.Now())
+	dbPayload, err := s.repo.FetchVCNPayload(ctx, userEmail, tradingDate)
 	if err != nil {
-		return response, err
+		return models.VirtualContractNoteResponse{}, fmt.Errorf("database retrieval failed for contract note: %w", err)
 	}
 
-	var completedTrades []models.OrderBookEntry
-	for _, o := range dbOrders {
-		if o.Status == "COMPLETE" { // Only calculate fees for successfully filled executions
-			completedTrades = append(completedTrades, o)
-		}
-	}
+	var response models.VirtualContractNoteResponse
+	response.Summary.Brokerage = dbPayload.Summary.Brokerage
+	response.Summary.STT = dbPayload.Summary.STT
+	response.Summary.StampDuty = dbPayload.Summary.StampDuty // ✅ Fixed tracking assignment
+	response.Summary.ExchangeTurnoverCharge = dbPayload.Summary.ExchangeTurnoverCharge
+	response.Summary.SEBITurnoverCharge = dbPayload.Summary.SebiTurnoverCharge
+	response.Summary.GST = dbPayload.Summary.GST
+	response.Summary.TotalCharges = dbPayload.Summary.TotalCharges
 
-	// Internal sandbox tracking fallback if zero database fills exist yet for today
-	if len(completedTrades) == 0 {
-		completedTrades = []models.OrderBookEntry{
-			{Timestamp: time.Now().Add(-10 * time.Minute).UTC(), Side: "BUY", Symbol: "THANGAMAYL", Qty: 10, Price: 5387.44},
-			{Timestamp: time.Now().Add(-5 * time.Minute).UTC(), Side: "SELL", Symbol: "THANGAMAYL", Qty: 10, Price: 5416.40},
-		}
-	}
-
-	response.Trades = make([]models.EnrichedMockTrade, len(completedTrades))
-	for i, t := range completedTrades {
-		turnover := float64(t.Qty) * t.Price
-
-		// Brokerage Calculation: 0.03% capped at ₹20 per order execution slice
-		brokerage := turnover * 0.0003
-		if brokerage > 20.0 {
-			brokerage = 20.0
-		}
-
-		// STT (Securities Transaction Tax): 0.025% evaluated exclusively on Equity Intraday SELL Legs
-		stt := 0.0
-		if t.Side == "SELL" {
-			stt = turnover * 0.00025
-		}
-
-		// Exchange Turnover Fee (NSE Equity Intraday framework): 0.00322%
-		exchangeTurnover := turnover * 0.0000322
-
-		// SEBI Transaction Metric: 0.0001% (Capped via ₹10 per Crore rules)
-		sebiTurnover := turnover * 0.0000001
-
-		// Stamp Duty Charge Structure: 0.003% parsed over BUY Legs only
-		stampDuty := 0.0
-		if t.Side == "BUY" {
-			stampDuty = turnover * 0.00003
-		}
-
-		// Standard National GST Framework: 18% evaluated on combined services
-		gst := (brokerage + exchangeTurnover + sebiTurnover) * 0.18
-
-		totalLegCharges := brokerage + stt + exchangeTurnover + sebiTurnover + stampDuty + gst
-
-		// Aggregate Totals into Response Summary Block
-		response.Summary.Brokerage += brokerage
-		response.Summary.STT += stt
-		response.Summary.StampDuty += stampDuty
-		response.Summary.ExchangeTurnoverCharge += exchangeTurnover
-		response.Summary.SEBITurnoverCharge += sebiTurnover
-		response.Summary.GST += gst
-		response.Summary.TotalCharges += totalLegCharges
-
+	response.Trades = make([]models.EnrichedMockTrade, len(dbPayload.Trades))
+	for i, dbTrade := range dbPayload.Trades {
 		response.Trades[i] = models.EnrichedMockTrade{
-			Timestamp:       t.Timestamp,
-			Side:            t.Side,
-			Symbol:          t.Symbol,
+			Timestamp:       dbTrade.Timestamp,
+			Side:            dbTrade.Side,
+			Symbol:          dbTrade.Symbol,
 			Exchange:        "NSE",
-			Quantity:        t.Qty,
-			AveragePrice:    t.Price,
-			AllocatedCharge: totalLegCharges,
+			Quantity:        dbTrade.Quantity,
+			AveragePrice:    dbTrade.Price,
+			AllocatedCharge: dbTrade.Charges,
 		}
 	}
 
