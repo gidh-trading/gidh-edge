@@ -23,7 +23,8 @@ type APIConfig struct {
 }
 
 type DBConfig struct {
-	ConnString string
+	ConnString     string
+	LiveConnString string // Add this field
 }
 
 type AppConfig struct {
@@ -59,7 +60,8 @@ func Load() *Config {
 			EngineURL: engineURL,
 		},
 		DB: DBConfig{
-			ConnString: dbURL,
+			ConnString:     dbURL,
+			LiveConnString: getEnv("LIVE_DATABASE_URL", ""),
 		},
 		App: AppConfig{
 			LogLevel:          getEnv("LOG_LEVEL", "info"),

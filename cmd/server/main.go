@@ -28,7 +28,7 @@ func main() {
 	// Initialize lean services
 	edgeSvc := service.NewEdgeService(repoInstance, engineClient)
 	snapSvc := service.NewSnapshotService(repoInstance, engineClient)
-	backtestSvc := service.NewBacktestService(engineClient, repoInstance, cfg.App.BacktestBackupDir)
+	backtestSvc := service.NewBacktestService(engineClient, repoInstance, cfg.App.BacktestBackupDir, cfg.DB.LiveConnString)
 	orderSvc := service.NewOrderService(engineClient, orderRepoInstance, cfg.Kite.APIKey, cfg.Kite.AccessToken)
 
 	// Initialize handlers
