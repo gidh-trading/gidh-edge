@@ -36,9 +36,14 @@ func NewOrderService(e *client.HTTPEngineClient, repo *repo.OrderRepository, api
 }
 
 func (s *OrderService) GetVirtualContractNote(ctx context.Context, tradingDate string) (models.VirtualContractNoteResponse, error) {
+
+	todayStr := time.Now().Format("2006-01-02")
+
 	// --- 1. HISTORICAL OR SIMULATION MODE: FETCH DIRECTLY FROM DB ---
 	// If a specific date is requested, or if we don't have a live client context, let edge calculate it
-	if tradingDate != "" || s.kiteClient == nil {
+	isHistorical := tradingDate != "" && tradingDate != todayStr
+
+	if isHistorical || s.kiteClient == nil {
 		return s.calculateSimulationContractNote(ctx, tradingDate)
 	}
 
