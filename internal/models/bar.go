@@ -22,6 +22,7 @@ type BarAnalytics struct {
 	AnchorDistLow          float64 `json:"anchor_dist_low"`  // Triggered when Distance < 0.5%
 	RollingFlowIntensity   float64 `json:"rolling_flow_intensity"`
 	RollingMomentumScore   float64 `json:"rolling_momentum_score"`
+	RollingVwapVelocity    float64 `json:"rolling_vwap_velocity"`
 }
 
 type Bar struct {

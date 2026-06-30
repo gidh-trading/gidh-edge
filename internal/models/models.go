@@ -114,16 +114,20 @@ type OrderBookEntry struct {
 }
 
 type Position struct {
-	TradingDate   time.Time `json:"trading_date"`
-	Symbol        string    `json:"symbol"`
-	Product       string    `json:"product"`
-	Side          string    `json:"side"` // LONG, SHORT, or empty "" if flat
-	NetQuantity   int       `json:"net_quantity"`
-	AveragePrice  float64   `json:"average_price"`
-	RealizedPnL   float64   `json:"realized_pnl"`
-	UnrealizedPnL float64   `json:"unrealized_pnl"`  // Computed dynamically per tick on backend
-	TargetPrice   float64   `json:"target_price"`    // Syncs visual chart target boundaries
-	StopLossPrice float64   `json:"stop_loss_price"` // Syncs visual chart floor boundaries
+	TradingDate    time.Time `json:"trading_date"`
+	Symbol         string    `json:"symbol"`
+	Product        string    `json:"product"`
+	Side           string    `json:"side"` // LONG, SHORT, or empty "" if flat
+	NetQuantity    int       `json:"net_quantity"`
+	AveragePrice   float64   `json:"average_price"`
+	LTP            float64   `json:"ltp"`
+	RealizedPnL    float64   `json:"realized_pnl"`
+	UnrealizedPnL  float64   `json:"unrealized_pnl"`  // Computed dynamically per tick on backend
+	TargetPrice    float64   `json:"target_price"`    // Syncs visual chart target boundaries
+	StopLossPrice  float64   `json:"stop_loss_price"` // Syncs visual chart floor boundaries
+	EntryTimestamp string    `json:"entry_timestamp"`
+	TimeElapsed    string    `json:"time_elapsed"` // ⚡ NEW: Tracking duration inside position
+
 }
 
 // internal/models/models.go
@@ -191,5 +195,7 @@ type VWAPDistancePercentiles struct {
 	NegP90          float64   `json:"neg_p90"`
 	NegP97          float64   `json:"neg_p97"`
 	NegP99          float64   `json:"neg_p99"`
+	PosMax          float64   `json:"pos_max"`
+	NegMax          float64   `json:"neg_max"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }

@@ -317,6 +317,7 @@ func (r *PostgresRepo) GetVWAPDistancePercentiles(ctx context.Context, targetDat
               trading_date,
               pos_p50, pos_p75, pos_p90, pos_p97, pos_p99,
               neg_p50, neg_p75, neg_p90, neg_p97, neg_p99,
+              pos_max,neg_max,
               updated_at
        FROM public.gidh_vwap_distance_percentiles
        WHERE trading_date = $1
@@ -345,6 +346,8 @@ func (r *PostgresRepo) GetVWAPDistancePercentiles(ctx context.Context, targetDat
 			&vp.NegP90,
 			&vp.NegP97,
 			&vp.NegP99,
+			&vp.PosMax,
+			&vp.NegMax,
 			&vp.UpdatedAt,
 		)
 		if err != nil {
